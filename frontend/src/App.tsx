@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import GameView from './pages/GameView'
 
 const queryClient = new QueryClient()
 
@@ -45,6 +46,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/game/:storyId/:sessionId"
+              element={
+                <PrivateRoute>
+                  <GameView />
                 </PrivateRoute>
               }
             />
