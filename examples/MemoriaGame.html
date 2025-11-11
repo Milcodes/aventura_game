@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Memória Játék</title>
+<style>
+  html,body{height:100%;margin:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);font-family:Arial,Helvetica,sans-serif;color:#fff;overflow:hidden}
+  #gameBox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+  #grid{display:grid;grid-template-columns:repeat(4,110px);gap:12px;margin:20px auto}
+  .card{position:relative;width:110px;height:110px;background:#fff;border-radius:12px;cursor:pointer;transition:transform .6s;transform-style:preserve-3d}
+  .card .face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px}
+  .card .front{background:#fff;color:#764ba2}
+  .card .back{background:#764ba2;color:#fff;transform:rotateY(180deg)}
+  .card.flipped{transform:rotateY(180deg)}
+  .card.matched{transform:rotateY(180deg) scale(1.1);box-shadow:0 0 20px #fff}
+  h1{margin-bottom:20px;font-size:28px}
+  #msg{margin-top:20px;font-size:20px;height:30px}
+  #stats{display:flex;justify-content:center;gap:30px;margin-bottom:20px;font-size:18px}
+  .stat-item{background:rgba(255,255,255,0.2);padding:10px 15px;border-radius:8px}
+  button{padding:10px 20px;font-size:16px;border:none;border-radius:8px;background:#fff;color:#764ba2;cursor:pointer;margin-top:10px}
+  #result{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);padding:30px;border-radius:12px;text-align:center;z-index:100}
+</style>
+</head>
+<body>
+<div id="gameBox">
+  <h1>Memória Játék</h1>
+  <div id="stats">
+    <div class="stat-item">Idő: <span id="timer">0</span>s</div>
+    <div class="stat-item">Pontok: <span id="points">0</span></div>
+    <div class="stat-item">Lépések: <span id="moves">0</span></div>
+  </div>
+  <div id="grid"></div>
+  <div id="msg"></div>
+  <button id="startBtn">Játék indítása</button>
+</div>
+
+<div id="result">
+  <h2>Gratulálok! 🎉</h2>
+  <p>Teljesítményed:</p>
+  <div id="resultStats"></div>
+  <button onclick="location.reload()">Új játék</button>
+</div>
+
+<script>
+  const symbols = ['🎁','🎉','🧩','🎈','🎊','🎂','⭐','🎨'];
+  let cards = [...symbols,...symbols].sort(()=>Math.random()-.5);
+  const grid = document.getElementById('grid');
+  const msg = document.getElementById('msg');
+  const timerEl = document.getElementById('timer');
+  const pointsEl = document.getElementById('points');
+  const movesEl = document.getElementById('moves');
+  const startBtn = document.getElementById('startBtn');
+  const result = document.getElementById('result');
+  const resultStats = document.getElementById('resultStats');
+  
+  let first=null, lock=false, matched=0, moves=0;
+  let points = 0;
+  let startTime = null;
+  let timerInterval = null;
+  let gameStarted = false;
+  let flippedCards = new Set(); // Nyomon követjük a megfordított kártyákat
+  let unsuccessfulAttempts = 0; // Sikertelen párosítások száma
+
+  // Kártyák inicializálása
+  function initCards() {
+    grid.innerHTML = '';
+    cards = [...symbols,...symbols].sort(()=>Math.random()-.5);
+    
+    cards.forEach((sym,i)=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.dataset.symbol=sym;
+      c.innerHTML=`<div class="face front">?</div><div class="face back">${sym}</div>`;
+      c.addEventListener('click',flip);
+      grid.appendChild(c);
+    });
+  }
+
+  // Játék indítása
+  function startGame() {
+    if (gameStarted) return;
+    
+    gameStarted = true;
+    startBtn.disabled = true;
+    startTime = new Date();
+    
+    // Időmérő indítása
+    timerInterval = setInterval(() => {
+      const currentTime = new Date();
+      const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+      timerEl.textContent = elapsedSeconds;
+    }, 1000);
+    
+    // Kezdeti pontszám
+    points = 0;
+    pointsEl.textContent = points;
+    moves = 0;
+    movesEl.textContent = moves;
+    
+    msg.textContent = "Játék elkezdve! Találd meg az összes párt!";
+    
+    // Kártyák megjelenítése 3 másodpercig
+    const allCards = document.querySelectorAll('.card');
+    allCards.forEach(card => {
+      card.classList.add('flipped');
+    });
+    
+    setTimeout(() => {
+      allCards.forEach(card => {
+        card.classList.remove('flipped');
+      });
+    }, 3000);
+  }
+
+  // Kártya megfordítása
+  function flip(e){
+    if(!gameStarted) {
+      msg.textContent = "Először indítsd el a játékot!";
+      return;
+    }
+    
+    const card=e.currentTarget;
+    if(lock||card.classList.contains('flipped')||card.classList.contains('matched')) return;
+    
+    card.classList.add('flipped');
+    moves++;
+    movesEl.textContent = moves;
+    
+    // Nyomon követjük a megfordított kártyákat
+    flippedCards.add(card);
+    
+    if(!first){
+      first=card;
+      return;
+    }
+    
+    lock=true;
+    
+    if(first.dataset.symbol===card.dataset.symbol){
+      // Sikeres párosítás
+      setTimeout(()=>{
+        first.classList.add('matched');
+        card.classList.add('matched');
+        first=lock=null;
+        matched++;
+        
+        // Pontszerzés: minél kevesebb lépésből találjuk meg a párt, annál több pont
+        const pairPoints = Math.max(10 - moves/2, 1);
+        points += Math.floor(pairPoints);
+        pointsEl.textContent = points;
+        
+        if(matched===symbols.length) endGame();
+      },400);
+    }else{
+      // Sikertelen párosítás
+      unsuccessfulAttempts++;
+      setTimeout(()=>{
+        first.classList.remove('flipped');
+        card.classList.remove('flipped');
+        first=lock=null;
+        
+        // Pontlevonás sikertelen párosításért
+        points = Math.max(0, points - 1);
+        pointsEl.textContent = points;
+      },600);
+    }
+  }
+
+  // Játék vége
+  function endGame(){
+    clearInterval(timerInterval);
+    
+    const endTime = new Date();
+    const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
+    
+    // Végeredmény számítása
+    const maxPoints = symbols.length * 10;
+    const efficiency = Math.floor((points / maxPoints) * 100);
+    
+    // Eredmények megjelenítése
+    resultStats.innerHTML = `
+      <p>Idő: ${elapsedSeconds} másodperc</p>
+      <p>Pontszám: ${points} / ${maxPoints}</p>
+      <p>Lépések: ${moves}</p>
+      <p>Hatékonyság: ${efficiency}%</p>
+      <p>Sikertelen próbálkozások: ${unsuccessfulAttempts}</p>
+    `;
+    
+    result.style.display = 'block';
+  }
+
+  // Eseménykezelők
+  startBtn.addEventListener('click', startGame);
+  
+  // Kezdeti kártyák betöltése
+  initCards();
+</script>
+</body>
+</html>
