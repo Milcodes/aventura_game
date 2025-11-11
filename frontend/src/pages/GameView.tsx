@@ -8,6 +8,8 @@ import InventoryBar from '../components/InventoryBar'
 import InventoryModal from '../components/InventoryModal'
 import DiceRollModal, { DiceRollResult } from '../components/DiceRollModal'
 import QuizModal, { QuizResult } from '../components/QuizModal'
+import HTMLModal, { HTMLModalResult } from '../components/HTMLModal'
+import { memoryGameHTML } from '../components/games/MemoryGame'
 import Toast from '../components/Toast'
 import './GameView.css'
 
@@ -50,6 +52,55 @@ const gameScenes: Record<string, any> = {
     decisions: [
       { id: 'decision_menu', text: 'Vissza a főmenübe', action: { type: 'NAVIGATE', target: 'main_menu' } },
       { id: 'decision_restart', text: 'Folytatás a legutóbbi mentett pontról', action: { type: 'LOAD_LATEST_SAVE' } }
+    ]
+  },
+  scene_secret_door_found: {
+    id: 'scene_secret_door_found',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/667eea?text=Titkos+Ajto',
+    storyText: `Szuper, ügyes voltál! A térkép segítségével találtál egy titkos ajtót.
+      Az ajtó régi és misztikusnak tűnik. Bemész rajta?`,
+    decisions: [
+      {
+        id: 'decision_enter_door',
+        text: 'Bemész az ajtón',
+        nextScene: 'scene_broken_handle'
+      },
+      { id: 'decision_go_back', text: 'Inkább visszamész', nextScene: 'scene_end' }
+    ]
+  },
+  scene_broken_handle: {
+    id: 'scene_broken_handle',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/ff9800?text=Toros+Kilincs',
+    storyText: `Az ajtó kilincse régi és ahogy próbáltad lenyomni eltört...
+      De egy üzenet van az ajtóra vészve: "A memória próbája nyitja az utat. Négy pár, 20 másodperc."`,
+    decisions: [
+      {
+        id: 'decision_solve_puzzle',
+        text: '🧩 Megoldod a titkot',
+        action: { type: 'OPEN_MODAL', modal_id: 'memory_game' }
+      }
+    ]
+  },
+  scene_memory_success: {
+    id: 'scene_memory_success',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/4caf50?text=Siker',
+    storyText: `Remek! Megoldottad a memória próbáját! Az ajtó lassan kinyílik,
+      felfedve egy titokzatos folyosót...`,
+    decisions: [
+      { id: 'decision_continue', text: 'Tovább', nextScene: 'scene_end' }
+    ]
+  },
+  scene_memory_failure: {
+    id: 'scene_memory_failure',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/ff6b6b?text=Sikertelen',
+    storyText: `Sajnos nem sikerült időben megoldani a feladványt.
+      Az ajtó bezárva marad. Talán később visszatérhetsz...`,
+    decisions: [
+      { id: 'decision_back', text: 'Visszamész', nextScene: 'scene_end' }
     ]
   },
   scene_end: {
@@ -106,6 +157,7 @@ export default function GameView() {
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
   const [isDiceModalOpen, setIsDiceModalOpen] = useState(false)
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false)
+  const [isMemoryGameOpen, setIsMemoryGameOpen] = useState(false)
 
   // Toast notifications
   const [toasts, setToasts] = useState<ToastNotification[]>([])
@@ -160,6 +212,8 @@ export default function GameView() {
         setIsDiceModalOpen(true)
       } else if (decision.action.modal_id === 'quiz_chest') {
         setIsQuizModalOpen(true)
+      } else if (decision.action.modal_id === 'memory_game') {
+        setIsMemoryGameOpen(true)
       }
       return
     }
@@ -216,9 +270,9 @@ export default function GameView() {
         showToast('+ 20 Arany', 'success', '💰')
       }, 500)
 
-      // Continue to next scene
+      // Continue to secret door scene
       setTimeout(() => {
-        transitionToScene('scene_end')
+        transitionToScene('scene_secret_door_found')
       }, 1500)
     } else {
       // Failure: no rewards, but continue
@@ -229,6 +283,29 @@ export default function GameView() {
     }
 
     console.log('Quiz result:', result)
+  }
+
+  const handleMemoryGameResult = (result: HTMLModalResult | null) => {
+    setIsMemoryGameOpen(false)
+
+    if (!result) return
+
+    // Evaluate memory game result
+    if (result.success) {
+      // Success: proceed to success scene
+      showToast('Sikeres megoldás!', 'success', '🎉')
+      setTimeout(() => {
+        transitionToScene('scene_memory_success')
+      }, 1000)
+    } else {
+      // Failure: proceed to failure scene
+      showToast('Nem sikerült...', 'error', '😞')
+      setTimeout(() => {
+        transitionToScene('scene_memory_failure')
+      }, 1000)
+    }
+
+    console.log('Memory game result:', result)
   }
 
   const transitionToScene = (sceneId: string) => {
@@ -302,6 +379,13 @@ export default function GameView() {
         question={chestQuiz.question}
         options={chestQuiz.options}
         timeLimit={30}
+      />
+
+      <HTMLModal
+        isOpen={isMemoryGameOpen}
+        onClose={handleMemoryGameResult}
+        title="🧩 Memória Próba"
+        htmlContent={memoryGameHTML}
       />
 
       {/* Toast Notifications */}

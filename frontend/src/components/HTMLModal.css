@@ -1,0 +1,67 @@
+.html-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.html-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(26, 26, 46, 0.6);
+  border: 3px solid #667eea;
+  border-radius: 12px;
+}
+
+.html-timer .timer-icon {
+  font-size: 1.75rem;
+}
+
+.html-timer .timer-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.html-game-container {
+  min-height: 400px;
+  background: rgba(26, 26, 46, 0.4);
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.html-modal-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.html-confirm-btn {
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.5);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.html-confirm-btn:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+  .html-game-container {
+    min-height: 300px;
+    padding: 1rem;
+  }
+}
