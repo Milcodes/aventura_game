@@ -73,7 +73,7 @@ const gameScenes: Record<string, any> = {
     mediaType: 'image' as const,
     mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/ff9800?text=Toros+Kilincs',
     storyText: `Az ajtó kilincse régi és ahogy próbáltad lenyomni eltört...
-      De egy üzenet van az ajtóra vészve: "A memória próbája nyitja az utat. Négy pár, 20 másodperc."`,
+      De egy üzenet van az ajtóra vészve: "A memória próbája nyitja az utat. Hat pár, 20 másodperc."`,
     decisions: [
       {
         id: 'decision_solve_puzzle',

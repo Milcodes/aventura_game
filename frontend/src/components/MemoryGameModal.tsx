@@ -49,8 +49,8 @@ export default function MemoryGameModal({ isOpen, onClose }: MemoryGameModalProp
       return
     }
 
-    // Create shuffled cards
-    const symbols = ['🎁', '🎉', '🧩', '🎈', '🎁', '🎉', '🧩', '🎈', '⭐']
+    // Create shuffled cards (6 pairs = 12 cards)
+    const symbols = ['🎁', '🎁', '🎉', '🎉', '🧩', '🧩', '🎈', '🎈', '⭐', '⭐', '🎯', '🎯']
     const shuffled = [...symbols].sort(() => Math.random() - 0.5)
 
     const newCards: Card[] = shuffled.map((symbol, index) => ({
@@ -123,7 +123,7 @@ export default function MemoryGameModal({ isOpen, onClose }: MemoryGameModalProp
           setFlippedCards([])
 
           // Check for win
-          if (matchedPairs + 1 === 4) {
+          if (matchedPairs + 1 === 6) {
             endGame(true)
           }
         }, 500)
@@ -190,7 +190,7 @@ export default function MemoryGameModal({ isOpen, onClose }: MemoryGameModalProp
           </div>
           <div className="memory-stat">
             <div className="memory-stat-label">Párok</div>
-            <div className="memory-stat-value">{matchedPairs}/4</div>
+            <div className="memory-stat-value">{matchedPairs}/6</div>
           </div>
         </div>
 
