@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import GameView from './pages/GameView'
+import AdminStories from './pages/admin/AdminStories'
 
 const queryClient = new QueryClient()
 
@@ -54,6 +55,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <GameView />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/stories"
+              element={
+                <PrivateRoute>
+                  <AdminStories />
                 </PrivateRoute>
               }
             />
