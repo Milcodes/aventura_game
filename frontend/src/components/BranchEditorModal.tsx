@@ -106,14 +106,14 @@ export default function BranchEditorModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="node-modal-overlay" onClick={onClose}>
+      <div className="node-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="node-modal-header">
           <h2>{isEditing ? 'Branch szerkesztése' : 'Új branch létrehozása'}</h2>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-body">
+        <form onSubmit={handleSubmit} className="node-modal-body">
           {error && <div className="error-message">⚠️ {error}</div>}
 
           <div className="form-group">
