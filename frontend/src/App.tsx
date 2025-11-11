@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import GameView from './pages/GameView'
 import AdminStories from './pages/admin/AdminStories'
+import StoryEditor from './pages/admin/StoryEditor'
 
 const queryClient = new QueryClient()
 
@@ -63,6 +64,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminStories />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/stories/:id"
+              element={
+                <PrivateRoute>
+                  <StoryEditor />
                 </PrivateRoute>
               }
             />
