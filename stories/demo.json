@@ -1,0 +1,313 @@
+{
+  "title": "Ezustkapu Demo",
+  "language": "hu",
+  "version": "2.0",
+  "assets": [
+    {
+      "id": "img_tower",
+      "type": "image",
+      "src": "https://cdn.example.com/demo/tower.jpg",
+      "alt": "Torony",
+      "meta": {
+        "prompt": "Misty tower on a hill at night",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "id": "img_demon",
+      "type": "image",
+      "src": "https://cdn.example.com/demo/demon.jpg",
+      "alt": "Demon",
+      "meta": {
+        "prompt": "Lava chained demon in underground cavern",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "id": "img_apple",
+      "type": "image",
+      "src": "https://cdn.example.com/demo/apple.png",
+      "alt": "Alma",
+      "meta": {
+        "prompt": "Red apple on white background",
+        "width": 512,
+        "height": 512
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "silver_key",
+      "name": "Ezustkulcs",
+      "type": "key",
+      "stackable": false,
+      "icon": "https://cdn.example.com/demo/key.png",
+      "desc": "Finoman vesett ezustkulcs."
+    },
+    {
+      "id": "infernal_shard",
+      "name": "Pokoli szilank",
+      "type": "quest",
+      "stackable": true,
+      "max_stack": 99,
+      "icon": "https://cdn.example.com/demo/shard.png",
+      "desc": "Forro energia rezeg benne."
+    }
+  ],
+  "currencies": [
+    { "id": "coin", "name": "Erme", "symbol": "¤" },
+    { "id": "crystal", "name": "Kristaly", "symbol": "♦" }
+  ],
+  "stats": [
+    { "id": "health", "name": "Eletero", "min": 0, "max": 10, "start": 10 },
+    { "id": "corruption", "name": "Rontas", "min": 0, "max": 10, "start": 0 },
+    { "id": "reputation", "name": "Hirnev", "min": -10, "max": 10, "start": 0 }
+  ],
+  "nodes": [
+    {
+      "id": "1",
+      "part": 1,
+      "title": "Kod es torony",
+      "text": "Ejjel kod szall a dombteton. Egy osi torony all elotted, fenylo runakkal. A bejarat meghivo.",
+      "media": [{ "asset_id": "img_tower", "role": "illustration" }],
+      "on_enter": {
+        "effects": [{ "op": "set_flag", "flag": "saw_tower", "value": true }]
+      },
+      "choices": [
+        { "label": "Belepek a toronyba", "next_id": "2A" },
+        { "label": "Korulnezek kivulrol", "next_id": "2B" }
+      ]
+    },
+    {
+      "id": "2A",
+      "part": 2,
+      "title": "Lepcsok es ajtok",
+      "text": "Odabent runak fenylnek a falakon. Fent kek fenyU ajto, lent voros izzas latszik.",
+      "choices": [
+        { "label": "Fel a kek fenyhez", "next_id": "3A1" },
+        { "label": "Le a voros izzasba", "next_id": "3A2" }
+      ]
+    },
+    {
+      "id": "2B",
+      "part": 2,
+      "title": "Rejtett lejaro",
+      "text": "Kivul koszobrok allnak. Az egyik markaban kulcsforma targy. A fold megnyilik, rejtett lejaro latszik.",
+      "choices": [
+        {
+          "label": "Felveszem a kulcsot es visszamegyek",
+          "next_id": "2A",
+          "effects": [{ "op": "add_item", "item_id": "silver_key", "qty": 1 }]
+        },
+        { "label": "Lemegyek az alagutba", "next_id": "3B1" }
+      ]
+    },
+    {
+      "id": "3A1",
+      "part": 3,
+      "title": "Orzo es tudaskviz",
+      "text": "Egy lebego gomb. Az Orzo megkerdezi: ismered a nevelo helyes alakjat?",
+      "media": [{ "asset_id": "img_apple", "role": "illustration" }],
+      "puzzle": {
+        "id": "pz_article_apfel",
+        "kind": "article_de",
+        "prompt": "Valaszd ki a helyes nevelo alakot: — Apfel",
+        "noun": "Apfel",
+        "gender": "der",
+        "case": "NOM",
+        "time_limit_ms": 30000,
+        "attempts_max": 2,
+        "hints": ["Nom eset alapalak.", "Gyumolcs, himnem."],
+        "success": {
+          "effects": [
+            { "op": "add_currency", "currency_id": "crystal", "value": 1 },
+            { "op": "add_stat", "stat_id": "reputation", "value": 1 }
+          ]
+        },
+        "failure": {
+          "effects": [{ "op": "add_stat", "stat_id": "corruption", "value": 1 }]
+        },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        { "label": "Tudast kerek", "next_id": "4A1a" },
+        { "label": "Hatalmat valasztok", "next_id": "4A1b" }
+      ]
+    },
+    {
+      "id": "3A2",
+      "part": 3,
+      "title": "Lancolt demon",
+      "text": "Lava folyam mellett lancolt demon sug: Szabadits ki, jutalmat kapsz!",
+      "media": [{ "asset_id": "img_demon", "role": "illustration" }],
+      "puzzle": {
+        "id": "pz_demon_hotspot",
+        "kind": "hotspot",
+        "prompt": "Jelold be a lanc rogziteseit a falon.",
+        "media": [{ "asset_id": "img_demon", "role": "illustration" }],
+        "areas": [
+          { "id": "a1", "shape": "rect", "coords": [300, 210, 340, 250], "correct": true },
+          { "id": "a2", "shape": "rect", "coords": [470, 300, 510, 340], "correct": true },
+          { "id": "a3", "shape": "rect", "coords": [120, 120, 160, 160], "correct": false }
+        ],
+        "allow_multiple": true,
+        "time_limit_ms": 20000,
+        "attempts_max": 2,
+        "success": {
+          "effects": [{ "op": "add_item", "item_id": "infernal_shard", "qty": 1 }]
+        },
+        "failure": {
+          "effects": [{ "op": "add_stat", "stat_id": "reputation", "value": -1 }]
+        },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        {
+          "label": "Segitek a demonon",
+          "next_id": "4A2a",
+          "effects": [
+            { "op": "add_stat", "stat_id": "corruption", "value": 1 },
+            { "op": "set_flag", "flag": "freed_demon", "value": true }
+          ]
+        },
+        {
+          "label": "Visszautasitom",
+          "next_id": "4A2b",
+          "effects": [
+            {
+              "op": "loot_table",
+              "table": [
+                { "weight": 60, "effects": [{ "op": "add_currency", "currency_id": "coin", "value": 5 }] },
+                { "weight": 30, "effects": [{ "op": "add_item", "item_id": "infernal_shard", "qty": 1 }] },
+                { "weight": 10, "effects": [{ "op": "add_stat", "stat_id": "reputation", "value": 1 }] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3B1",
+      "part": 3,
+      "title": "Nevtelen kapu",
+      "text": "Felirat: Csak aki elveszti a nevet, lephet at. Az ajto megnyilik ket percre.",
+      "on_enter": {
+        "effects": [{ "op": "set_timer", "timer_flag": "door_open", "expires_in_ms": 120000 }]
+      },
+      "choices": [
+        {
+          "label": "Atkecmeregek a nyitott ajton",
+          "next_id": "5X",
+          "requirements": { "op": "flag_is", "flag": "door_open", "value": true },
+          "disabled_reason": "Az ajto zarva van."
+        },
+        { "label": "Visszafordulok", "next_id": "2B" }
+      ]
+    },
+    {
+      "id": "4A1a",
+      "part": 4,
+      "title": "Tudas terhe",
+      "text": "Megerted a valasztasok halojat. Most donts: nyitod az ezust kaput?",
+      "choices": [
+        {
+          "label": "Ezust ajto kinyitasa",
+          "next_id": "5Y",
+          "requirements": {
+            "all_of": [
+              { "op": "has_item", "item_id": "silver_key", "qty": 1 },
+              { "op": "stat_between", "stat_id": "reputation", "min": 0, "max": 10 },
+              {
+                "any_of": [
+                  { "op": "puzzle_solved", "puzzle_id": "pz_article_apfel" },
+                  { "op": "visited_node", "node_id": "3A2" }
+                ]
+              }
+            ]
+          },
+          "effects": [{ "op": "remove_item", "item_id": "silver_key", "qty": 1 }],
+          "disabled_reason": "Kulcs es semleges vagy jobb hirnev szukseges."
+        },
+        { "label": "Halo elvagasa", "next_id": "5Z" }
+      ]
+    },
+    {
+      "id": "4A1b",
+      "part": 4,
+      "title": "Hatalom ara",
+      "text": "Az erovel jar az ar is.",
+      "choices": [{ "label": "Tovabb", "next_id": "6E1a" }]
+    },
+    {
+      "id": "4A2a",
+      "part": 4,
+      "title": "Szerzodes",
+      "text": "A demon segit az uthoz, de lancai lelkedre kotnek.",
+      "choices": [{ "label": "Tovabb", "next_id": "6E1a" }]
+    },
+    {
+      "id": "4A2b",
+      "part": 4,
+      "title": "Visszhangok",
+      "text": "Ezustos atjaro. Visszhangok suttognak.",
+      "choices": [{ "label": "Tovabb", "next_id": "6E1b" }]
+    },
+    {
+      "id": "5X",
+      "part": 5,
+      "title": "Rejtekterem",
+      "text": "Idokapu mogott egy szoba. Csend.",
+      "choices": [{ "label": "Tovabb", "next_id": "6E1b" }]
+    },
+    {
+      "id": "5Y",
+      "part": 5,
+      "title": "Kapu nyitva",
+      "text": "Az utak osszehangolasa. Most donts: ki vagy te?",
+      "choices": [
+        { "label": "Orzo leszek", "next_id": "6E1a" },
+        { "label": "Vissza a faluba", "next_id": "6E1b" }
+      ]
+    },
+    {
+      "id": "5Z",
+      "part": 5,
+      "title": "Halo elvagasa",
+      "text": "A kapu nem vezet tevote tobbe.",
+      "choices": [
+        { "label": "Vegleges pusztitas", "next_id": "6E2a" },
+        { "label": "Csak lezarom", "next_id": "6E2b" }
+      ]
+    },
+    {
+      "id": "6E1a",
+      "part": 6,
+      "type": "ending",
+      "title": "Uj Orzo",
+      "text": "Te orzod a dontesek dallamat. A vilagok egyseget teremtetted."
+    },
+    {
+      "id": "6E1b",
+      "part": 6,
+      "type": "ending",
+      "title": "Csendes haza",
+      "text": "A torony eltunik. A falu bekeben el. Te is hazaersz."
+    },
+    {
+      "id": "6E2a",
+      "part": 6,
+      "type": "ending",
+      "title": "Nemlet arnyeka",
+      "text": "A kapu porra hull. A vilag elfelejt mindent."
+    },
+    {
+      "id": "6E2b",
+      "part": 6,
+      "type": "ending",
+      "title": "Orzott csend",
+      "text": "A vilagok kulon maradnak. A titok megorzod."
+    }
+  ]
+}

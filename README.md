@@ -8,7 +8,7 @@ Ez egy lapozgatós kalandjáték (interactive fiction engine), ahol a játékos 
 
 ## Projekt Állapot
 
-🚧 **Fejlesztés alatt** - A Claude Code webes verziója dolgozik a projekten
+✅ **Core Engine Implemented** - A teljes játékmotor készen áll!
 
 ## Főbb Jellemzők
 
@@ -49,9 +49,16 @@ Ez egy lapozgatós kalandjáték (interactive fiction engine), ahol a játékos 
 ```
 aventura_game/
 ├── docs/              # Teljes játékspecifikáció
-├── src/               # Forráskód (hamarosan)
+├── src/               # TypeScript forráskód
+│   ├── core/          # Type definitions
+│   ├── engine/        # Game engine, state, effects, puzzles
+│   ├── examples/      # Console player example
+│   └── index.ts       # Main export
 ├── stories/           # Történetek JSON formátumban
+│   └── demo.json      # Példa történet
 ├── assets/            # Média fájlok
+├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -63,11 +70,99 @@ A teljes játékspecifikáció a `docs/` mappában található:
 
 ## Technológiai Stack
 
-TBD - A fejlesztés során kerül meghatározásra a webes Claude által
+- **TypeScript** - Type-safe fejlesztés
+- **Node.js** - Runtime environment
+- **JSON** - Story format és adattárolás
 
-## Használat
+## Telepítés és Használat
 
-**FONTOS**: Minden fejlesztésnek a `docs/` mappában található specifikációkat kell alapul vennie!
+### Telepítés
+
+```bash
+# Függőségek telepítése
+npm install
+
+# TypeScript build
+npm run build
+```
+
+### Console Player futtatása
+
+```bash
+# Demo történet futtatása
+npm run example
+
+# Saját történet futtatása
+node dist/examples/console-player.js stories/your-story.json
+```
+
+### API Használat
+
+```typescript
+import { GameEngine, loadStoryFromFile, ConsoleRenderer } from 'aventura-game';
+
+// Story betöltése
+const story = await loadStoryFromFile('stories/demo.json');
+
+// Engine létrehozása
+const engine = new GameEngine(story);
+
+// Renderer létrehozása
+const renderer = new ConsoleRenderer();
+
+// Event listener
+engine.on((event) => {
+  console.log('Event:', event.type);
+});
+
+// Játék indítása
+engine.start();
+
+// Választás
+engine.makeChoice(0);
+
+// Puzzle megoldása
+engine.solvePuzzle(answer);
+```
+
+## Implementált Modulok
+
+### Core
+- ✅ Type definitions (types.ts)
+- ✅ Requirements evaluator (requirements.ts)
+- ✅ Effects system (effects.ts)
+- ✅ Puzzle engine (puzzles.ts)
+- ✅ State management (state.ts)
+- ✅ Game engine (engine.ts)
+- ✅ Story loader (loader.ts)
+- ✅ Renderer interface (renderer.ts)
+
+### Examples
+- ✅ Console player (console-player.ts)
+
+## Story JSON Format
+
+Lásd a `stories/demo.json` fájlt egy teljes példáért. A story formátum a `docs/game-specification-part2.txt` fájlban van részletesen dokumentálva.
+
+## Fejlesztés
+
+```bash
+# Watch mode
+npm run dev
+
+# Build
+npm run build
+
+# Lint
+npm run lint
+
+# Clean
+npm run clean
+```
+
+## Licensz
+
+MIT
 
 ---
 

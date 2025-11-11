@@ -1,0 +1,113 @@
+// Prisma Schema for Aventura Game Backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stories  Story[]
+  sessions GameSession[]
+
+  @@map("users")
+}
+
+// Story model (user-created stories)
+model Story {
+  id          String   @id @default(uuid())
+  title       String
+  language    String   @default("hu")
+  version     String   @default("1.0")
+  content     Json     // Full story JSON
+  isPublished Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  sessions GameSession[]
+
+  @@index([authorId])
+  @@index([isPublished])
+  @@map("stories")
+}
+
+// Game session model
+model GameSession {
+  id        String   @id @default(uuid())
+  userId    String
+  storyId   String
+  state     Json     // GameState object
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story  Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  puzzleAttempts PuzzleAttempt[]
+  shopTransactions ShopTransaction[]
+
+  @@index([userId])
+  @@index([storyId])
+  @@map("game_sessions")
+}
+
+// Puzzle attempt tracking
+model PuzzleAttempt {
+  id            String   @id @default(uuid())
+  sessionId     String
+  puzzleId      String
+  answer        Json
+  correct       Boolean
+  score         Float?
+  timeSpentMs   Int?
+  attemptedAt   DateTime @default(now())
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([puzzleId])
+  @@map("puzzle_attempts")
+}
+
+// Shop transaction tracking
+model ShopTransaction {
+  id          String   @id @default(uuid())
+  sessionId   String
+  action      String   // "buy" or "sell"
+  itemId      String
+  quantity    Int
+  cost        Json     // { currency_id, value }
+  success     Boolean
+  createdAt   DateTime @default(now())
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("shop_transactions")
+}
+
+// Analytics event tracking
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  sessionId String?
+  eventType String
+  eventData Json?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([eventType])
+  @@map("analytics_events")
+}
