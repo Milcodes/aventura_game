@@ -1,0 +1,172 @@
+.dice-roll-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem 0;
+}
+
+.dice-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 120px;
+  padding: 1rem;
+}
+
+.dice-placeholder {
+  text-align: center;
+  color: #888;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+.dice {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform-style: preserve-3d;
+  transition: transform 0.3s;
+}
+
+.dice.rolling {
+  animation: diceRoll 0.1s infinite;
+}
+
+@keyframes diceRoll {
+  0% {
+    transform: rotate3d(1, 1, 0, 0deg);
+  }
+  25% {
+    transform: rotate3d(1, 1, 0, 90deg);
+  }
+  50% {
+    transform: rotate3d(1, 1, 0, 180deg);
+  }
+  75% {
+    transform: rotate3d(1, 1, 0, 270deg);
+  }
+  100% {
+    transform: rotate3d(1, 1, 0, 360deg);
+  }
+}
+
+.dice-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.dice-result {
+  background: rgba(26, 26, 46, 0.6);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.result-text {
+  font-size: 1.25rem;
+  color: #e0e0e0;
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+}
+
+.result-text strong {
+  font-size: 1.5rem;
+  color: #667eea;
+}
+
+.result-verdict {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.result-verdict.success {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.result-verdict.failure {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+.dice-modal-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.dice-roll-btn,
+.dice-confirm-btn {
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.5);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dice-roll-btn:hover,
+.dice-confirm-btn:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.dice-roll-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .dice-container {
+    gap: 1rem;
+  }
+
+  .dice {
+    width: 60px;
+    height: 60px;
+  }
+
+  .dice-value {
+    font-size: 2rem;
+  }
+
+  .result-text {
+    font-size: 1.1rem;
+  }
+
+  .result-text strong {
+    font-size: 1.3rem;
+  }
+
+  .result-verdict {
+    font-size: 1.25rem;
+  }
+
+  .dice-roll-btn,
+  .dice-confirm-btn {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+  }
+}
