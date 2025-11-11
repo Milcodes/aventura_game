@@ -82,7 +82,7 @@ export default function GameView() {
 
   const currentScene = gameScenes[currentSceneId]
 
-  const handleDecision = async (decisionId: string, decision: any) => {
+  const handleDecision = async (_decisionId: string, decision: any) => {
     // Handle modal actions
     if (decision.action?.type === 'OPEN_MODAL') {
       if (decision.action.modal_id === 'dice_roll_2d6') {
@@ -162,7 +162,7 @@ export default function GameView() {
 
         <DecisionButtons
           decisions={currentScene.decisions}
-          onDecision={(decisionId, nextSceneId) => {
+          onDecision={(decisionId, _nextSceneId) => {
             const decision = currentScene.decisions.find((d: any) => d.id === decisionId)
             handleDecision(decisionId, decision)
           }}
