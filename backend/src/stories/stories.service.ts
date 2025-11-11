@@ -145,12 +145,12 @@ export class StoriesService {
       }
 
       // Rule: Branch must have at least 1 node
-      if (branch.nodes.length === 0) {
+      if ((branch as any).nodes?.length === 0) {
         throw new BadRequestException(`Branch "${branch.name}" must have at least one node`);
       }
 
       // Rule: Max 100 nodes per branch
-      if (branch.nodes.length > 100) {
+      if ((branch as any).nodes?.length > 100) {
         throw new BadRequestException(`Branch "${branch.name}" exceeds maximum of 100 nodes`);
       }
     }
