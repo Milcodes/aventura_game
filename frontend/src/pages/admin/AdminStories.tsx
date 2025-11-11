@@ -37,13 +37,13 @@ export default function AdminStories() {
     try {
       const response = await storiesApi.create({
         title: 'Új történet',
-        description: '',
         language: 'hu',
       });
       navigate(`/admin/stories/${response.data.id}`);
     } catch (err: any) {
       console.error('Failed to create story:', err);
-      alert('Nem sikerült létrehozni a történetet');
+      const errorMessage = err.response?.data?.message || err.message || 'Nem sikerült létrehozni a történetet';
+      alert(`Hiba: ${errorMessage}`);
     }
   };
 
