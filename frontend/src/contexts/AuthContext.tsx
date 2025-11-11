@@ -68,6 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        color: '#e0e0e0'
+      }}>
+        Loading...
+      </div>
+    )
+  }
+
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}

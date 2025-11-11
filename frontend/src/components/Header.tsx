@@ -19,9 +19,9 @@ export default function Header() {
         <div className="header-right">
           <div className="user-section">
             <div className="user-avatar">
-              {user?.username.charAt(0).toUpperCase()}
+              {user?.username?.charAt(0).toUpperCase() || '?'}
             </div>
-            <span className="user-name">{user?.username}</span>
+            <span className="user-name">{user?.username || 'Guest'}</span>
             <button
               className="settings-icon"
               onClick={() => setShowMenu(!showMenu)}
