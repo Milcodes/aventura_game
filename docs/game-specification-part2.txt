@@ -1,0 +1,833 @@
+OK. Alabb egy egyben, onmagaban elegseges, specialis karakterek nelkuli, implementalasra fokuszalo specifikacio. Ezt masik AI vagy fejleszto kozvetlenul tudja kodolni. Tartalom: cel, adatkontrakt (JSON + teljes schema), jatekallapot, kovetelmenylogika, hatasok vegrehajtasa, puzzle motor, veletlenites, idozites, renderer API es perzisztencia. A vegere betettem egy rovid, de minden elemet demonstralo pelda story JSON-t.
+
+C E L
+
+Interaktiv tortenetmotor, amely csomopontokbol all. Minden csomopont szoveget, media hivatkozasokat, valasztasi lehetosegeket, opcionalis feladatot (puzzle), belépesi hatasokat tartalmaz. A jatekos allapotot (inventory, penznemek, statok, flagek, puzzle eredmenyek) a kliens vagy szerver tarolja. A tovabblepes feltetelekhez kotheto. Siker/kudarc hatasok jutalmaznak, buntetnek vagy agat valtanak.
+
+A D A T K O N T R A K T – J S O N S T O R Y S E M A
+
+A kovetkezo JSON Schema Draft-07 a teljes formatumot leirja. Minden szerkezet ASCII, nincs ekezet.
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InteractiveStory",
+  "type": "object",
+  "required": ["title", "language", "version", "nodes"],
+  "properties": {
+    "title": { "type": "string" },
+    "language": { "type": "string" },
+    "version": { "type": "string" },
+
+    "assets": { "type": "array", "items": { "$ref": "#/definitions/MediaAsset" } },
+    "items": { "type": "array", "items": { "$ref": "#/definitions/ItemDef" } },
+    "currencies": { "type": "array", "items": { "$ref": "#/definitions/CurrencyDef" } },
+    "stats": { "type": "array", "items": { "$ref": "#/definitions/StatDef" } },
+
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/Node" }
+    }
+  },
+
+  "definitions": {
+    "MediaAsset": {
+      "type": "object",
+      "required": ["id", "type", "src"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["image", "video", "audio"] },
+        "src": { "type": "string" },
+        "alt": { "type": "string" },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer" },
+            "height": { "type": "integer" },
+            "duration": { "type": "number" },
+            "prompt": { "type": "string" },
+            "seed": { "type": "string" },
+            "generator": { "type": "string" },
+            "format": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "MediaRef": {
+      "type": "object",
+      "required": ["asset_id"],
+      "properties": {
+        "asset_id": { "type": "string" },
+        "role": { "type": "string", "enum": ["illustration", "background", "thumb", "video", "audio"] }
+      },
+      "additionalProperties": false
+    },
+
+    "ItemDef": {
+      "type": "object",
+      "required": ["id", "name", "type", "stackable"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "stackable": { "type": "boolean" },
+        "max_stack": { "type": "integer" },
+        "icon": { "type": "string" },
+        "desc": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "CurrencyDef": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "symbol": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "StatDef": {
+      "type": "object",
+      "required": ["id", "name", "min", "max", "start"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "start": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "Effect": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "add_item","remove_item",
+            "add_currency","add_stat",
+            "set_flag","log",
+            "goto","unlock_choice","lock_choice",
+            "set_timer","loot_table"
+          ]
+        },
+        "item_id": { "type": "string" },
+        "qty": { "type": "number" },
+        "currency_id": { "type": "string" },
+        "value": { "type": "number" },
+        "stat_id": { "type": "string" },
+        "flag": { "type": "string" },
+        "message": { "type": "string" },
+        "next_id": { "type": "string" },
+        "node_id": { "type": "string" },
+        "choice_index": { "type": "integer" },
+        "timer_flag": { "type": "string" },
+        "expires_in_ms": { "type": "integer" },
+        "table": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["weight","effects"],
+            "properties": {
+              "weight": { "type": "number" },
+              "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "Requirement": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "has_item","inventory_lt",
+            "currency_gte","currency_lt",
+            "stat_gte","stat_between",
+            "flag_is",
+            "puzzle_solved",
+            "visited_node"
+          ]
+        },
+        "item_id": { "type": "string" },
+        "qty": { "type": "number" },
+        "currency_id": { "type": "string" },
+        "value": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "stat_id": { "type": "string" },
+        "flag": { "type": "string" },
+        "puzzle_id": { "type": "string" },
+        "node_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "RequirementExpr": {
+      "oneOf": [
+        { "$ref": "#/definitions/Requirement" },
+        {
+          "type": "object",
+          "required": ["all_of"],
+          "properties": { "all_of": { "type": "array", "items": { "$ref": "#/definitions/RequirementExpr" }, "minItems": 1 } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["any_of"],
+          "properties": { "any_of": { "type": "array", "items": { "$ref": "#/definitions/RequirementExpr" }, "minItems": 1 } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["not"],
+          "properties": { "not": { "$ref": "#/definitions/RequirementExpr" } },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "PuzzleCommon": {
+      "type": "object",
+      "required": ["id","kind","prompt"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["mcq","text","regex","numeric","article_de","cloze_text","matching","ordering","hotspot"]
+        },
+        "prompt": { "type": "string" },
+        "media": { "type": "array", "items": { "$ref": "#/definitions/MediaRef" } },
+        "time_limit_ms": { "type": "integer", "minimum": 1000 },
+        "attempts_max": { "type": "integer", "minimum": 1 },
+        "hints": { "type": "array", "items": { "type": "string" } },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["weight","override"],
+            "properties": {
+              "weight": { "type": "number" },
+              "override": { "type": "object" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "success": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+            "next_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "failure": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+            "next_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "gate_choices_until_solved": { "type": "boolean", "default": true },
+        "dynamic": {
+          "type": "object",
+          "properties": {
+            "if_attempts_gt": { "type": "integer" },
+            "give_hint_cost": { "type": "object", "properties": { "currency_id": { "type": "string" }, "value": { "type": "number" } }, "additionalProperties": false },
+            "extra_time_ms": { "type": "integer" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "PuzzleMCQ": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["options","correct"],
+        "properties": {
+          "options": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+          "multiple": { "type": "boolean", "default": false },
+          "correct": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+          "shuffle": { "type": "boolean", "default": false }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleText": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "properties": {
+          "accepted_answers": { "type": "array", "items": { "type": "string" } },
+          "normalize": { "type": "array", "items": { "type": "string", "enum": ["trim","lower","ascii","noaccents"] } }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleRegex": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["pattern"],
+        "properties": { "pattern": { "type": "string" }, "flags": { "type": "string" } },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleNumeric": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["answer"],
+        "properties": { "answer": { "type": "number" }, "tolerance": { "type": "number", "default": 0 } },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleArticleDE": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["noun","gender"],
+        "properties": {
+          "noun": { "type": "string" },
+          "gender": { "type": "string", "enum": ["der","die","das"] },
+          "case": { "type": "string", "enum": ["NOM","AKK","DAT","GEN"], "default": "NOM" }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleClozeText": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["blanks"],
+        "properties": {
+          "kind": { "const": "cloze_text" },
+          "blanks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id","accepted_answers"],
+              "properties": {
+                "id": { "type": "string" },
+                "accepted_answers": { "type": "array", "items": { "type": "string" } },
+                "normalize": { "type": "array", "items": { "type":"string","enum":["trim","lower","ascii","noaccents"] } },
+                "weight": { "type": "number", "default": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "shuffle_blanks": { "type": "boolean", "default": false },
+          "partial_scoring": { "type": "boolean", "default": true }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleMatching": {
+      "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["left","right","pairs"],
+        "properties": {
+          "kind": { "const": "matching" },
+          "left": { "type": "array", "items": { "type":"string" }, "minItems": 2 },
+          "right": { "type": "array", "items": { "type":"string" }, "minItems": 2 },
+          "pairs": { "type": "array", "items": { "type":"array", "items": { "type":"integer" }, "minItems": 2, "maxItems": 2 } },
+          "shuffle": { "type": "boolean", "default": true },
+          "partial_scoring": { "type":"boolean", "default": true }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleOrdering": {
+      "allOf": [{ "$ref":"#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["options","correct_order"],
+        "properties": {
+          "kind": { "const": "ordering" },
+          "options": { "type":"array", "items": { "type":"string" }, "minItems": 3 },
+          "correct_order": { "type":"array", "items": { "type":"integer" }, "minItems": 3 },
+          "partial_scoring": { "type":"boolean", "default": true }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "PuzzleHotspot": {
+      "allOf": [{ "$ref":"#/definitions/PuzzleCommon" }, {
+        "type": "object",
+        "required": ["media","areas"],
+        "properties": {
+          "kind": { "const": "hotspot" },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type":"object",
+              "required": ["id","shape","coords"],
+              "properties": {
+                "id": { "type":"string" },
+                "shape": { "type":"string", "enum":["rect","circle","poly"] },
+                "coords": { "type":"array", "items": { "type":"number" }, "minItems": 3 },
+                "correct": { "type":"boolean", "default":false }
+              },
+              "additionalProperties": false
+            }
+          },
+          "allow_multiple": { "type":"boolean","default": false }
+        },
+        "additionalProperties": false
+      }]
+    },
+
+    "Puzzle": {
+      "oneOf": [
+        { "$ref": "#/definitions/PuzzleMCQ" },
+        { "$ref": "#/definitions/PuzzleText" },
+        { "$ref": "#/definitions/PuzzleRegex" },
+        { "$ref": "#/definitions/PuzzleNumeric" },
+        { "$ref": "#/definitions/PuzzleArticleDE" },
+        { "$ref": "#/definitions/PuzzleClozeText" },
+        { "$ref": "#/definitions/PuzzleMatching" },
+        { "$ref": "#/definitions/PuzzleOrdering" },
+        { "$ref": "#/definitions/PuzzleHotspot" }
+      ]
+    },
+
+    "Choice": {
+      "type": "object",
+      "required": ["label","next_id"],
+      "properties": {
+        "label": { "type": "string" },
+        "next_id": { "type": "string" },
+        "requirements": { "$ref": "#/definitions/RequirementExpr" },
+        "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+        "disabled_reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "Node": {
+      "type": "object",
+      "required": ["id","part","title","text"],
+      "properties": {
+        "id": { "type": "string" },
+        "part": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string", "enum": ["ending"] },
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "media": { "type": "array", "items": { "$ref": "#/definitions/MediaRef" } },
+        "on_enter": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } }
+          },
+          "additionalProperties": false
+        },
+        "puzzle": { "$ref": "#/definitions/Puzzle" },
+        "choices": { "type": "array", "items": { "$ref": "#/definitions/Choice" } }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "ending" } }, "required": ["type"] }, "then": { "not": { "required": ["choices"] } } }
+      ]
+    }
+  },
+
+  "additionalProperties": false
+}
+
+J A T E K A L L A P O T E S P E R Z I S Z T E N C I A
+
+Kliens oldali allapot pelda (mentheto localStorage vagy szerver DB):
+
+{
+  currentNodeId: "1",
+  visited: { "1": true },
+  inventory: { "silver_key": 0, "infernal_shard": 0 },
+  currencies: { "coin": 0, "crystal": 0 },
+  stats: { "health": 10, "corruption": 0, "reputation": 0 },
+  flags: { },
+  puzzles: {
+    // puzzle_id -> { solved, attempts, time_ms, score, last_answer, solved_at }
+  },
+  timers: {
+    // timer_flag -> { expiresAt: epoch_ms }
+  }
+}
+
+Persistalas: menteni minden csomopontvaltas utan. Szerveres csalasszuro eseten a puzzle ellenorzes szerveren fut, csak eredmeny ter vissza.
+
+K O V E T E L M E N Y E R T E K E L E S (RequirementExpr)
+
+Implementalj rekurziv ertekelot:
+
+evalReqExpr(expr):
+  if expr has op: return evalSimple(expr)
+  if expr has all_of: return every(evalReqExpr(x))
+  if expr has any_of: return some(evalReqExpr(x))
+  if expr has not: return !evalReqExpr(expr.not)
+
+  Simple op-ok:
+
+has_item(item_id, qty)
+
+inventory_lt(item_id, qty)
+
+currency_gte(currency_id, value)
+
+currency_lt(currency_id, value)
+
+stat_gte(stat_id, value)
+
+stat_between(stat_id, min, max)
+
+flag_is(flag, value)
+
+puzzle_solved(puzzle_id)
+
+visited_node(node_id)
+
+H A T A S O K V E G R E H A J T A S A
+
+applyEffect(e):
+
+add_item / remove_item: inventory[item_id] +=/-= qty, clamp 0..max
+
+add_currency: currencies[currency_id] += value
+
+add_stat: stats[stat_id] += value, clamp min..max
+
+set_flag: flags[flag] = boolean(value)
+
+log: optional UI log
+
+goto: immediate jump to next_id (override choice navigation)
+
+unlock_choice / lock_choice: engine szinten node choice index enable/disable cache
+
+set_timer: timers[timer_flag] = now + expires_in_ms
+
+loot_table: weighted random selection, futtasd benne levo effects listat
+
+Timer ellenorzes: requirement flag_is(timer_flag,true) csak akkor igaz, ha timers[timer_flag].expiresAt > now.
+
+P U Z Z L E M O T O R
+
+General:
+
+gate_choices_until_solved true eseten a choices gombok disabled, amig a puzzle ok nem teljesul.
+
+time_limit_ms: indits timer UI-t, lejartkor failure.
+
+attempts_max: hibas ellenorzes novel attempts, attempts >= limit eseten failure.
+
+Ertekeles:
+
+mcq: answer = array of selected indexes; ok, ha sorted(answer) == sorted(correct)
+
+text: normalize(answer) against accepted_answers
+
+regex: new RegExp(pattern, flags).test(answer)
+
+numeric: abs(answer - target) <= tolerance
+
+article_de: answer lower trim equals gender
+
+cloze_text: minden blank kulon ellenorzese, partial_scoring true eseten pontozhato
+
+matching: parok helyessegenek aranya
+
+ordering: sorrend megfelel-e; partial pontozhato
+
+hotspot: kattintott teruletek metszete a correct=true teruletekkel
+
+Siker vagy kudarc:
+
+futtasd success.effects vagy failure.effects
+
+ha success.next_id vagy failure.next_id megadva, ugorj oda; kulonben a node choices szerint haladj
+
+tarold puzzles[pz.id] = { solved, attempts, time_ms, score, last_answer, timestamp }
+
+Variants:
+
+ha variants van, a node megjelenitesekor sulyozottan valassz egy override-ot, merge-eld a puzzle-re.
+
+Adaptiv:
+
+ha dynamic.if_attempts_gt teljesul, adj extra_time_ms-t vagy ajanlj give_hint_cost levonasaert hintet.
+
+R E N D E R E R A P I K O N T R A K T
+
+Engine feladatok (pszeudokod):
+
+loadStory(json) -> index maps: nodesById, assetsById
+
+startGame() -> init state from stats.start, currencies 0, items 0
+
+enterNode(nodeId):
+
+node = nodesById[nodeId]
+
+visited[nodeId] = true
+
+apply all on_enter.effects
+
+renderMedia(node.media) (deferable)
+
+renderText(node.title, node.text)
+
+if node.puzzle: renderPuzzleUI(node.puzzle); if gate -> disable choices
+
+renderChoices(node.choices) with disabled flag based on requirements
+
+onChoiceClick(choice):
+
+if !requirements ok -> ignore
+
+run effects
+
+if any effect goto: jump
+
+else goto choice.next_id
+
+Renderer reszei:
+
+renderMedia(mediaRefs) -> lookup asset.src
+
+renderPuzzleUI(pz) -> input kontollok
+
+renderChoices(choices) -> gombok, disabled ha !evalReq
+
+renderHUD(state) -> inventory, currencies, stats, flags minimal
+
+saveState(), loadState()
+
+P E L D A S T O R Y J S O N (rovid, de teljes lefedettseg)
+
+Az alabbi JSON kicsi, de minden fontos elemet mutat: assets, items, currencies, stats, nodes, on_enter, requirements expr, effects, puzzle tipusk, loot_table, timer.
+
+{
+  "title": "Ezustkapu Demo",
+  "language": "hu",
+  "version": "2.0",
+  "assets": [
+    { "id": "img_tower", "type": "image", "src": "https://cdn/demo/tower.jpg", "alt": "Torony", "meta": { "prompt": "Misty tower" } },
+    { "id": "img_demon", "type": "image", "src": "https://cdn/demo/demon.jpg", "alt": "Demon", "meta": { "prompt": "Lava chained demon" } },
+    { "id": "img_apple", "type": "image", "src": "https://cdn/demo/apple.png", "alt": "Alma" }
+  ],
+  "items": [
+    { "id": "silver_key", "name": "Ezustkulcs", "type": "key", "stackable": false, "icon": "https://cdn/demo/key.png", "desc": "Vesett ezustkulcs." },
+    { "id": "infernal_shard", "name": "Pokoli szilank", "type": "quest", "stackable": true, "max_stack": 99, "icon": "https://cdn/demo/shard.png", "desc": "Forro szilank." }
+  ],
+  "currencies": [
+    { "id": "coin", "name": "Erme", "symbol": "¤" },
+    { "id": "crystal", "name": "Kristaly", "symbol": "♦" }
+  ],
+  "stats": [
+    { "id": "health", "name": "Eletero", "min": 0, "max": 10, "start": 10 },
+    { "id": "corruption", "name": "Rontas", "min": 0, "max": 10, "start": 0 },
+    { "id": "reputation", "name": "Hirnev", "min": -10, "max": 10, "start": 0 }
+  ],
+  "nodes": [
+    {
+      "id": "1",
+      "part": 1,
+      "title": "Kod es torony",
+      "text": "A dombteton torony all. A bejarat elotted.",
+      "media": [{ "asset_id": "img_tower", "role": "illustration" }],
+      "on_enter": { "effects": [ { "op": "set_flag", "flag": "saw_tower", "value": true } ] },
+      "choices": [
+        { "label": "Belepek", "next_id": "2A" },
+        { "label": "Korulnezek", "next_id": "2B" }
+      ]
+    },
+
+    {
+      "id": "2A",
+      "part": 2,
+      "title": "Lepcsok es ajtok",
+      "text": "Runak fenylnek. Fent kek ajto, lent voros feny.",
+      "choices": [
+        { "label": "Fel a kek fenyhez", "next_id": "3A1" },
+        { "label": "Le a voros izzasba", "next_id": "3A2" }
+      ]
+    },
+
+    {
+      "id": "2B",
+      "part": 2,
+      "title": "Rejtett lejaro",
+      "text": "Koszobor markaban kulcs. Fold alatti ajto nyilik.",
+      "choices": [
+        {
+          "label": "Felveszem a kulcsot es visszamegyek",
+          "next_id": "2A",
+          "effects": [ { "op": "add_item", "item_id": "silver_key", "qty": 1 } ]
+        },
+        { "label": "Lemegek az alagutba", "next_id": "3B1" }
+      ]
+    },
+
+    {
+      "id": "3A1",
+      "part": 3,
+      "title": "Orzo es tudaskviz",
+      "text": "Valaszd ki a helyes nevelo alakot.",
+      "media": [{ "asset_id": "img_apple", "role": "illustration" }],
+      "puzzle": {
+        "id": "pz_article_apfel",
+        "kind": "article_de",
+        "prompt": "— Apfel",
+        "noun": "Apfel",
+        "gender": "der",
+        "case": "NOM",
+        "time_limit_ms": 30000,
+        "attempts_max": 2,
+        "hints": ["Nom eset alapalak."],
+        "success": { "effects": [ { "op": "add_currency", "currency_id": "crystal", "value": 1 } ] },
+        "failure": { "effects": [ { "op": "add_stat", "stat_id": "corruption", "value": 1 } ] },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        { "label": "Tudast kerek", "next_id": "4A1a" },
+        { "label": "Hatalmat valasztok", "next_id": "4A1b" }
+      ]
+    },
+
+    {
+      "id": "3A2",
+      "part": 3,
+      "title": "Lancolt demon",
+      "text": "Lava folyam mellett lancolt demon. Segits es jutalom jar.",
+      "media": [{ "asset_id": "img_demon", "role": "illustration" }],
+      "puzzle": {
+        "id": "pz_demon_hotspot",
+        "kind": "hotspot",
+        "prompt": "Jelold be a lanc rogziteseit a falon.",
+        "media": [{ "asset_id": "img_demon", "role": "illustration" }],
+        "areas": [
+          { "id": "a1", "shape": "rect", "coords": [300,210,340,250], "correct": true },
+          { "id": "a2", "shape": "rect", "coords": [470,300,510,340], "correct": true },
+          { "id": "a3", "shape": "rect", "coords": [120,120,160,160], "correct": false }
+        ],
+        "allow_multiple": true,
+        "time_limit_ms": 20000,
+        "attempts_max": 2,
+        "success": { "effects": [ { "op": "add_item", "item_id": "infernal_shard", "qty": 1 } ] },
+        "failure": { "effects": [ { "op": "add_stat", "stat_id": "reputation", "value": -1 } ] },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        {
+          "label": "Segitek a demonon",
+          "next_id": "4A2a",
+          "effects": [
+            { "op": "add_stat", "stat_id": "corruption", "value": 1 },
+            { "op": "set_flag", "flag": "freed_demon", "value": true }
+          ]
+        },
+        {
+          "label": "Visszautasitom",
+          "next_id": "4A2b",
+          "effects": [
+            { "op": "loot_table", "table": [
+              { "weight": 60, "effects": [ { "op": "add_currency", "currency_id": "coin", "value": 5 } ] },
+              { "weight": 30, "effects": [ { "op": "add_item", "item_id": "infernal_shard", "qty": 1 } ] },
+              { "weight": 10, "effects": [ { "op": "add_stat", "stat_id": "reputation", "value": 1 } ] }
+            ] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "3B1",
+      "part": 3,
+      "title": "Nevtelen kapu",
+      "text": "Atlepsz ha elveszted a neved.",
+      "on_enter": { "effects": [ { "op": "set_timer", "timer_flag": "door_open", "expires_in_ms": 120000 } ] },
+      "choices": [
+        {
+          "label": "Atkecmeregek a nyitott ajton",
+          "next_id": "5X",
+          "requirements": { "op": "flag_is", "flag": "door_open", "value": true },
+          "disabled_reason": "Az ajto meg zarva."
+        },
+        { "label": "Visszafordulok", "next_id": "2B" }
+      ]
+    },
+
+    {
+      "id": "4A1a",
+      "part": 4,
+      "title": "Tudas terhe",
+      "text": "Megerted a valasztasok halojat.",
+      "choices": [
+        {
+          "label": "Ezust ajto kinyitasa",
+          "next_id": "5Y",
+          "requirements": {
+            "all_of": [
+              { "op": "has_item", "item_id": "silver_key", "qty": 1 },
+              { "op": "stat_between", "stat_id": "reputation", "min": 0, "max": 10 },
+              {
+                "any_of": [
+                  { "op": "puzzle_solved", "puzzle_id": "pz_article_apfel" },
+                  { "op": "visited_node", "node_id": "3A2" }
+                ]
+              }
+            ]
+          },
+          "effects": [ { "op": "remove_item", "item_id": "silver_key", "qty": 1 } ],
+          "disabled_reason": "Kulcs es semleges vagy jobb hirnev szukseges."
+        },
+        { "label": "Halo elvagasa", "next_id": "5Z" }
+      ]
+    },
+
+    { "id": "4A1b", "part": 4, "title": "Hatalom ara", "text": "Az erovel ar is jar.", "choices": [ { "label": "Tovabb", "next_id": "6E1a" } ] },
+
+    { "id": "4A2a", "part": 4, "title": "Szerzodes", "text": "Demon segit az uthoz.", "choices": [ { "label": "Tovabb", "next_id": "6E1a" } ] },
+
+    { "id": "4A2b", "part": 4, "title": "Visszhangok", "text": "Ezustos atjaro.", "choices": [ { "label": "Tovabb", "next_id": "6E1b" } ] },
+
+    { "id": "5X", "part": 5, "title": "Rejtekterem", "text": "Idokapu mogott szoba.", "choices": [ { "label": "Tovabb", "next_id": "6E1b" } ] },
+
+    { "id": "5Y", "part": 5, "title": "Kapu nyitva", "text": "Utak osszehangolasa.", "choices": [ { "label": "Orzo leszek", "next_id": "6E1a" }, { "label": "Vissza a faluba", "next_id": "6E1b" } ] },
+
+    { "id": "5Z", "part": 5, "title": "Halo elvagasa", "text": "A kapu nem vezet tevote.", "choices": [ { "label": "Vegleges pusztitas", "next_id": "6E2a" }, { "label": "Csak lezarom", "next_id": "6E2b" } ] },
+
+    { "id": "6E1a", "part": 6, "type": "ending", "title": "Uj Orzo", "text": "Te orzod a dallamot." },
+    { "id": "6E1b", "part": 6, "type": "ending", "title": "Csendes haza", "text": "Bekes falu." },
+    { "id": "6E2a", "part": 6, "type": "ending", "title": "Nemlet arnyeka", "text": "A vilag elfelejt." },
+    { "id": "6E2b", "part": 6, "type": "ending", "title": "Orzott csend", "text": "Vilagok kulon, titok megmarad." }
+  ]
+}
+
+M E G J E G Y Z E S
+
+A fenti schema es pelda JSON visszafele kompatibilis az eddigi formatoddal.
+
+Ha szerver oldali ellenorzes kell, csak a puzzle id-t es a valaszt kuldd a backendnek; az donti el helyes-e, es visszakuldi a success/failure eredmenyt es futtatando effects listat.
+
+Analitikat tudsz vezetni: attempts, time_ms, hint hasznalat, valasztott agak, loot kimenetek.
+
+Ennyi. Ezzel egy masik AI vagy fejleszto tud komplett motort epiteni: validacio (schema), renderer, allapotkezeles, puzzle-ertekeles, feltetellanc es hatasmotor mind le van irva.

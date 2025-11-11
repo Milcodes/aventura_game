@@ -1,0 +1,1287 @@
+Interaktív történet alapelve
+
+Ez a játék egy interaktív történet, amelyben a játékos döntéseket hoz, feladatokat old meg és tárgyakat gyűjt. Minden döntés és feladat befolyásolja a történet menetét és a játékos állapotát. A játék adatai egy JSON fájlban vannak tárolva, ami teljesen leírja a világot, a történet minden pontját, a médiaelemeket és az interakciók logikáját.
+
+Játék működése röviden
+
+A játék egy történetből áll, ami részekre vagy fejezetekre van bontva.
+
+Minden rész egy csomópont, amely tartalmaz:
+
+szöveget,
+
+képet vagy videót,
+
+választási lehetőségeket vagy egy automatikus továbblépést,
+
+esetleg logikai feladatot (puzzle),
+
+a részhez tartozó hatásokat és feltételeket.
+
+A játékos mindig egy aktuális csomópontnál van.
+
+A csomópont betöltésekor a játék elmenti az aktuális állapotot, megjeleníti a médiát és a szöveget, majd a döntési lehetőségeket vagy feladatot mutatja.
+
+Ha a játékos döntést hoz vagy sikeresen megold egy feladatot, a játék az előre definiált logika alapján továbbmegy a következő csomópontra.
+
+A játék minden állapotát helyben, a kliensben (például böngészőben) vagy a szerveren tárolja.
+
+Állapotmodell
+
+A játék folyamatosan nyilvántartja a játékos állapotát. Ez az állapot bármikor elmenthető vagy visszatölthető.
+
+Tárolt adatok
+
+inventory: a birtokolt tárgyak és mennyiségük
+
+currencies: pénznemek és egyenlegek (például érme, kristály)
+
+stats: jellemzők mint életerő, hírnév, korrupció
+
+flags: logikai jelzők amelyek események megtörténtét tárolják
+
+puzzles: feladatok állapota, megoldva vagy nem, próbálkozások száma és idő
+
+currentNodeId: a történetben hol tart éppen a játékos
+
+Minden változás, amit a történet vagy a játékos döntése okoz, ezekben a mezőkben kerül tárolásra.
+
+Döntési logika
+
+A döntési pontokban minden választási lehetőséghez feltételek és hatások tartozhatnak.
+
+Feltételek például
+
+csak akkor jelenhet meg a gomb, ha a játékosnak van egy adott tárgya
+
+csak akkor választható, ha egy stat elér egy értéket
+
+csak akkor aktív, ha egy előző esemény megtörtént
+
+Hatások például
+
+tárgyat adunk vagy elveszünk
+
+pénzt adunk vagy levonunk
+
+statot növelünk vagy csökkentünk
+
+új flaget állítunk be igaz vagy hamis értékre
+
+üzenetet írunk a naplóba
+
+azonnal másik csomópontra ugrunk
+
+Feladatok és fejtörők
+
+A csomópontokhoz tartozhatnak interaktív feladatok, például:
+
+feleletválasztós kérdés,
+
+szöveges válasz,
+
+számítási feladat,
+
+regex minta,
+
+német névelő felismerés,
+
+képre épülő kérdés.
+
+A feladat akkor engedi tovább a játékost, ha a válasz helyes.
+Lehet időkorlát és próbálkozás limit.
+Siker vagy kudarc után hatások és jutalmak is meghatározhatók.
+
+Médiaelemek
+
+Minden csomóponthoz tetszőleges számú médiaelem kapcsolható: kép, videó, hang.
+A médiaelemek külön azonosítóval szerepelnek a JSON elején, így újrafelhasználhatók.
+A csomópont csak hivatkozik rájuk az azonosító alapján.
+Minden médiához tartozhat generálási prompt, méret, formátum, és egyéb metaadat.
+
+Játék logika futása
+
+Betöltjük a JSON fájlt.
+
+Indexeljük az összes csomópontot és médiaelemet.
+
+Elindulunk az első csomópontnál.
+
+Megjelenítjük a szöveget, képet, gombokat vagy feladatot.
+
+A játékos választ.
+
+Ellenőrizzük a feltételeket.
+
+Ha teljesülnek, végrehajtjuk a hatásokat és frissítjük az állapotot.
+
+Elmentjük a módosított állapotot.
+
+Betöltjük a következő csomópontot.
+
+Ismétlés a történet végéig.
+
+Adattárolás logikája
+
+A játék minden interakció után mentést készíthet:
+
+böngésző helyi tárában (localStorage),
+
+fájlba exportálva (mentés visszatölthető),
+
+vagy adatbázisban, ha szerveroldali rendszer van.
+
+A mentett adat nem a teljes történet, csak a dinamikus állapot (inventory, statok, flags, puzzles, currentNodeId).
+Így kis méretű és gyorsan betölthető marad.
+
+Ellenőrzési elv
+
+A játék kliensoldali validálással dolgozik, de érzékeny vagy értékes feladatokat lehet szerveroldalon is ellenőrizni.
+A szerver csak a puzzle id-t és a játékos válaszát kapja meg, majd visszaadja, hogy helyes vagy nem.
+Így a kliens nem látja a helyes választ, tehát nem lehet csalni.
+
+Moduláris felépítés
+
+story: a teljes történet
+
+assets: médiaelemek
+
+items: tárgyak
+
+currencies: pénznemek
+
+stats: jellemzők
+
+nodes: történeti pontok
+
+puzzles: logikai feladatok a node-on belül
+
+effects és requirements: logikai műveletek
+
+schema: a validáció szabályai
+
+Minden része külön bővíthető vagy frissíthető anélkül, hogy a többit módosítani kellene.
+
+Összefoglalás
+
+Ez a rendszer egy logikai és interaktív történetmotor, amely képes:
+
+döntés alapú történeteket kezelni,
+
+tárgyakat, statokat és pénznemeket nyilvántartani,
+
+médiaelemeket megjeleníteni,
+
+interaktív logikai és nyelvi feladatokat futtatni,
+
+jutalmazni vagy büntetni a játékost,
+
+elmenteni és visszatölteni az állapotot.
+
+A játék minden eseményét a JSON és a séma szabályozza, a kliens csak végrehajtja.
+
+Következő üzenetben jön a példa JSON és a hozzá tartozó séma, minden beépített funkcióval.
+
+
+{
+  "title": "Az Ezustkapu Arnyai",
+  "language": "hu",
+  "version": "1.1",
+  "assets": [
+    {
+      "id": "img_tower_v1",
+      "type": "image",
+      "src": "https://cdn.pelda/az-ezustkapu/img_tower_v1.jpg",
+      "alt": "Kodos dombteton egy osi torony.",
+      "meta": {
+        "width": 1280,
+        "height": 720,
+        "prompt": "Misty hill with ancient tower at night",
+        "generator": "AI",
+        "format": "jpg"
+      }
+    },
+    {
+      "id": "img_demon_lava_v1",
+      "type": "image",
+      "src": "https://cdn.pelda/az-ezustkapu/img_demon_lava_v1.jpg",
+      "alt": "Lava folyam mellett lancolt demon.",
+      "meta": {
+        "width": 1280,
+        "height": 720,
+        "prompt": "Underground cavern lit by molten lava, chained demon",
+        "generator": "AI",
+        "format": "jpg"
+      }
+    },
+    {
+      "id": "img_apple_v1",
+      "type": "image",
+      "src": "https://cdn.pelda/az-ezustkapu/img_apple_v1.png",
+      "alt": "Piros alma feher hatteren.",
+      "meta": {
+        "width": 512,
+        "height": 512,
+        "prompt": "Red apple",
+        "generator": "AI",
+        "format": "png"
+      }
+    }
+  ],
+  "items": [
+    { "id": "silver_key", "name": "Ezustkulcs", "type": "key", "stackable": false, "icon": "https://cdn.pelda/icons/silver_key.png", "desc": "Finom vesetekkel diszitett kulcs." },
+    { "id": "infernal_shard", "name": "Pokoli szilank", "type": "quest", "stackable": true, "max_stack": 99, "icon": "https://cdn.pelda/icons/infernal_shard.png", "desc": "Forro, sotet energia rezeg benne." }
+  ],
+  "currencies": [
+    { "id": "coin", "name": "Erme", "symbol": "¤" },
+    { "id": "crystal", "name": "Kristaly", "symbol": "♦" }
+  ],
+  "stats": [
+    { "id": "health", "name": "Eletero", "min": 0, "max": 10, "start": 10 },
+    { "id": "corruption", "name": "Rontas", "min": 0, "max": 10, "start": 0 },
+    { "id": "reputation", "name": "Hirnev", "min": -10, "max": 10, "start": 0 }
+  ],
+  "nodes": [
+    {
+      "id": "1",
+      "part": 1,
+      "title": "A kodbe veszett torony",
+      "text": "Ejjel kod szall a falura. A dombteton ismet megjelent az osi torony. Lorian a bejarathoz lep.",
+      "media": [{ "asset_id": "img_tower_v1", "role": "illustration" }],
+      "on_enter": {
+        "effects": [
+          { "op": "set_flag", "flag": "saw_tower", "value": true }
+        ]
+      },
+      "choices": [
+        { "label": "Belepek a toronyba", "next_id": "2A" },
+        { "label": "Korbejarom kivulrol", "next_id": "2B" }
+      ]
+    },
+    {
+      "id": "2A",
+      "part": 2,
+      "title": "Runak es lepcsok",
+      "text": "Odabent fenylo runak vezetnek. Fent kek fenyu ajto, lent voros izzas.",
+      "choices": [
+        { "label": "Fel a kek fenyhez", "next_id": "3A1" },
+        { "label": "Le a voros izzasba", "next_id": "3A2" }
+      ]
+    },
+    {
+      "id": "2B",
+      "part": 2,
+      "title": "Kulsokor es rejtekajto",
+      "text": "Kivul koszobrok, egyik markaban kulcsforma targy. A fold megnyilik, rejteklejaro latszik.",
+      "choices": [
+        { "label": "Lemegek a lejarohoz", "next_id": "3B1" },
+        {
+          "label": "A kulccsal nyitom a foajtot",
+          "next_id": "3B2",
+          "effects": [
+            { "op": "add_item", "item_id": "silver_key", "qty": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3A1",
+      "part": 3,
+      "title": "A kistalyterem",
+      "text": "Lebego gomb varosok kepeivel. Az Orzo megkerdezi: tudas vagy hatalom.",
+      "puzzle": {
+        "id": "pz_article_de_apfel",
+        "kind": "article_de",
+        "prompt": "Valaszd ki a helyes nevelo alakot: — Apfel",
+        "noun": "Apfel",
+        "gender": "der",
+        "case": "NOM",
+        "media": [{ "asset_id": "img_apple_v1", "role": "illustration" }],
+        "time_limit_ms": 30000,
+        "attempts_max": 2,
+        "hints": ["Nom esetre gondolj.", "Gyumolcs, himnem."],
+        "success": {
+          "effects": [
+            { "op": "add_currency", "currency_id": "crystal", "value": 1 },
+            { "op": "add_stat", "stat_id": "reputation", "value": 1 }
+          ]
+        },
+        "failure": {
+          "effects": [
+            { "op": "add_stat", "stat_id": "corruption", "value": 1 }
+          ]
+        },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        { "label": "A tudas utja", "next_id": "4A1a" },
+        { "label": "A hatalom utja", "next_id": "4A1b" }
+      ]
+    },
+    {
+      "id": "3A2",
+      "part": 3,
+      "title": "A melyseg lancai",
+      "text": "Lava folyam mellett lancolt demon sug: Szabadits ki, megjutalmazlak.",
+      "media": [{ "asset_id": "img_demon_lava_v1", "role": "illustration" }],
+      "puzzle": {
+        "id": "pz_demon_mcq",
+        "kind": "mcq",
+        "prompt": "Hany lanc kotri a lenyt a falhoz lathatoan",
+        "options": ["Egy", "Ketto", "Harom", "Nem latszik"],
+        "multiple": false,
+        "correct": [1],
+        "time_limit_ms": 25000,
+        "attempts_max": 2,
+        "hints": ["Nezd a vall es derek kornyeket."],
+        "success": {
+          "effects": [
+            { "op": "add_item", "item_id": "infernal_shard", "qty": 1 }
+          ]
+        },
+        "failure": {
+          "effects": [
+            { "op": "add_stat", "stat_id": "reputation", "value": -1 }
+          ]
+        },
+        "gate_choices_until_solved": true
+      },
+      "choices": [
+        {
+          "label": "Segitek neki",
+          "next_id": "4A2a",
+          "effects": [
+            { "op": "add_stat", "stat_id": "corruption", "value": 1 },
+            { "op": "set_flag", "flag": "freed_demon", "value": true }
+          ]
+        },
+        {
+          "label": "Visszautasitom es tovabblepek",
+          "next_id": "4A2b",
+          "effects": [
+            { "op": "add_currency", "currency_id": "coin", "value": 3 },
+            { "op": "add_stat", "stat_id": "reputation", "value": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3B1",
+      "part": 3,
+      "title": "A nevtelen kapu",
+      "text": "Felirat: Csak aki elveszti a nevet, lephet at.",
+      "choices": [
+        {
+          "label": "Atkelek a kapun",
+          "next_id": "4B1a",
+          "effects": [
+            { "op": "set_flag", "flag": "no_name", "value": true }
+          ]
+        },
+        { "label": "Visszafordulok", "next_id": "2B" }
+      ]
+    },
+    {
+      "id": "3B2",
+      "part": 3,
+      "title": "A tukrok folyosaja",
+      "text": "Tukrok mas es mas jovot mutatnak.",
+      "choices": [
+        {
+          "label": "Hatalom tukre",
+          "next_id": "4B2a",
+          "requirements": [
+            { "op": "has_item", "item_id": "silver_key", "qty": 1 }
+          ],
+          "disabled_reason": "Hianyzik az Ezustkulcs."
+        },
+        { "label": "A falu viragzasanak tukre", "next_id": "4B2b" }
+      ]
+    },
+    {
+      "id": "4A1a",
+      "part": 4,
+      "title": "A tudas terhe",
+      "text": "Megerted: az Ezustkapu valasztasok haloja.",
+      "choices": [
+        { "label": "Utak egyesitese", "next_id": "5E1" },
+        { "label": "Halo elvagasa", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4A1b",
+      "part": 4,
+      "title": "A hatalom ara",
+      "text": "Minden ero egy masik ut elhalasa.",
+      "choices": [
+        { "label": "Utak egyesitese", "next_id": "5E1" },
+        { "label": "Kapu elpusztitasa", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4A2a",
+      "part": 4,
+      "title": "Szerzodes a melyben",
+      "text": "A demon uthoz segit, de lancai a lelkedre kotnek.",
+      "choices": [
+        { "label": "Megvaltas utja", "next_id": "5E1" },
+        { "label": "Vegzet utja", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4A2b",
+      "part": 4,
+      "title": "A kisertes elutasitasa",
+      "text": "Ezustos atjarohoz ersz, visszhangok utkozo sorsokrol suttognak.",
+      "choices": [
+        { "label": "Osszhang", "next_id": "5E1" },
+        { "label": "Megsemmisites", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4B1a",
+      "part": 4,
+      "title": "Nev nelkul",
+      "text": "A multhoz fuzo szalak elernyednek.",
+      "choices": [
+        { "label": "Egyseg", "next_id": "5E1" },
+        { "label": "Elvagas", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4B2a",
+      "part": 4,
+      "title": "A koronak terme",
+      "text": "A valosag uvegszeruen recseg a donteseid alatt.",
+      "choices": [
+        { "label": "Rend egyseggel", "next_id": "5E1" },
+        { "label": "Rend pusztitassal", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "4B2b",
+      "part": 4,
+      "title": "A falu viragzasa",
+      "text": "Malmok, piac, nyugodt elet, de ez csak egy ut.",
+      "choices": [
+        { "label": "Legyen kozos minden ut", "next_id": "5E1" },
+        { "label": "Zarjuk be a kapukat", "next_id": "5E2" }
+      ]
+    },
+    {
+      "id": "5E1",
+      "part": 5,
+      "title": "A valosag osszehangolasa",
+      "text": "Az utak dallama kozosse valik.",
+      "choices": [
+        { "label": "Vallalom az Orzo szerepet", "next_id": "6E1a" },
+        { "label": "Visszavonulok a falumba", "next_id": "6E1b" }
+      ]
+    },
+    {
+      "id": "5E2",
+      "part": 5,
+      "title": "A halo elvagasa",
+      "text": "A kapu tobbeket nem vezet tevote.",
+      "choices": [
+        { "label": "Mindent elvagok", "next_id": "6E2a" },
+        { "label": "Csak lezarom", "next_id": "6E2b" }
+      ]
+    },
+    {
+      "id": "6E1a",
+      "part": 6,
+      "type": "ending",
+      "title": "Az uj Orzo",
+      "text": "Te orzod a dontesek dallamat."
+    },
+    {
+      "id": "6E1b",
+      "part": 6,
+      "type": "ending",
+      "title": "Csendes hazateres",
+      "text": "A torony eltunik, a falu bekeben el."
+    },
+    {
+      "id": "6E2a",
+      "part": 6,
+      "type": "ending",
+      "title": "A nemlet arnyeka",
+      "text": "A kapu porra lesz, a vilag elfelejt."
+    },
+    {
+      "id": "6E2b",
+      "part": 6,
+      "type": "ending",
+      "title": "Orzott csend",
+      "text": "A vilagok kulon maradnak, a titok megmarad."
+    }
+  ]
+}
+
+JSON Schema (validacio a fenti struktura ellen)
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InteractiveStory",
+  "type": "object",
+  "required": ["title", "language", "version", "nodes"],
+  "properties": {
+    "title": { "type": "string" },
+    "language": { "type": "string" },
+    "version": { "type": "string" },
+
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/MediaAsset" }
+    },
+
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ItemDef" }
+    },
+
+    "currencies": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/CurrencyDef" }
+    },
+
+    "stats": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/StatDef" }
+    },
+
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/Node" }
+    }
+  },
+
+  "definitions": {
+    "MediaAsset": {
+      "type": "object",
+      "required": ["id", "type", "src"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["image", "video", "audio"] },
+        "src": { "type": "string" },
+        "alt": { "type": "string" },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer" },
+            "height": { "type": "integer" },
+            "duration": { "type": "number" },
+            "prompt": { "type": "string" },
+            "seed": { "type": "string" },
+            "generator": { "type": "string" },
+            "format": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "MediaRef": {
+      "type": "object",
+      "required": ["asset_id"],
+      "properties": {
+        "asset_id": { "type": "string" },
+        "role": { "type": "string", "enum": ["illustration", "background", "thumb", "video", "audio"] }
+      },
+      "additionalProperties": false
+    },
+
+    "ItemDef": {
+      "type": "object",
+      "required": ["id", "name", "type", "stackable"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "stackable": { "type": "boolean" },
+        "max_stack": { "type": "integer" },
+        "icon": { "type": "string" },
+        "desc": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "CurrencyDef": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "symbol": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "StatDef": {
+      "type": "object",
+      "required": ["id", "name", "min", "max", "start"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "start": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+
+    "Effect": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "type": "string", "enum": ["add_item","remove_item","add_currency","add_stat","set_flag","log"] },
+        "item_id": { "type": "string" },
+        "qty": { "type": "number" },
+        "currency_id": { "type": "string" },
+        "value": { "type": "number" },
+        "stat_id": { "type": "string" },
+        "flag": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "Requirement": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "type": "string", "enum": ["has_item","currency_gte","stat_gte","flag_is"] },
+        "item_id": { "type": "string" },
+        "qty": { "type": "number" },
+        "currency_id": { "type": "string" },
+        "value": { "type": "number" },
+        "stat_id": { "type": "string" },
+        "flag": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "PuzzleCommon": {
+      "type": "object",
+      "required": ["id","kind","prompt"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["mcq","text","regex","numeric","article_de","ordering","hotspot"] },
+        "prompt": { "type": "string" },
+        "media": { "type": "array", "items": { "$ref": "#/definitions/MediaRef" } },
+        "time_limit_ms": { "type": "integer", "minimum": 1000 },
+        "attempts_max": { "type": "integer", "minimum": 1 },
+        "hints": { "type": "array", "items": { "type": "string" } },
+        "success": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+            "next_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "failure": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+            "next_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "gate_choices_until_solved": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+
+    "PuzzleMCQ": {
+      "allOf": [
+        { "$ref": "#/definitions/PuzzleCommon" },
+        {
+          "type": "object",
+          "required": ["options","correct"],
+          "properties": {
+            "options": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+            "multiple": { "type": "boolean", "default": false },
+            "correct": { "type": "array", "items": { "type": "integer" }, "minItems": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "PuzzleText": {
+      "allOf": [
+        { "$ref": "#/definitions/PuzzleCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "accepted_answers": { "type": "array", "items": { "type": "string" } },
+            "normalize": { "type": "array", "items": { "type": "string", "enum": ["trim","lower","ascii","noaccents"] } }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "PuzzleRegex": {
+      "allOf": [
+        { "$ref": "#/definitions/PuzzleCommon" },
+        {
+          "type": "object",
+          "required": ["pattern"],
+          "properties": {
+            "pattern": { "type": "string" },
+            "flags": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "PuzzleNumeric": {
+      "allOf": [
+        { "$ref": "#/definitions/PuzzleCommon" },
+        {
+          "type": "object",
+          "required": ["answer"],
+          "properties": {
+            "answer": { "type": "number" },
+            "tolerance": { "type": "number", "default": 0 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "PuzzleArticleDE": {
+      "allOf": [
+        { "$ref": "#/definitions/PuzzleCommon" },
+        {
+          "type": "object",
+          "required": ["noun","gender"],
+          "properties": {
+            "noun": { "type": "string" },
+            "gender": { "type": "string", "enum": ["der","die","das"] },
+            "case": { "type": "string", "enum": ["NOM","AKK","DAT","GEN"], "default": "NOM" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "Puzzle": {
+      "oneOf": [
+        { "$ref": "#/definitions/PuzzleMCQ" },
+        { "$ref": "#/definitions/PuzzleText" },
+        { "$ref": "#/definitions/PuzzleRegex" },
+        { "$ref": "#/definitions/PuzzleNumeric" },
+        { "$ref": "#/definitions/PuzzleArticleDE" }
+      ]
+    },
+
+    "Choice": {
+      "type": "object",
+      "required": ["label","next_id"],
+      "properties": {
+        "label": { "type": "string" },
+        "next_id": { "type": "string" },
+        "requirements": { "type": "array", "items": { "$ref": "#/definitions/Requirement" } },
+        "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } },
+        "disabled_reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "Node": {
+      "type": "object",
+      "required": ["id","part","title","text"],
+      "properties": {
+        "id": { "type": "string" },
+        "part": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string", "enum": ["ending"] },
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "media": { "type": "array", "items": { "$ref": "#/definitions/MediaRef" } },
+        "on_enter": {
+          "type": "object",
+          "properties": {
+            "effects": { "type": "array", "items": { "$ref": "#/definitions/Effect" } }
+          },
+          "additionalProperties": false
+        },
+        "puzzle": { "$ref": "#/definitions/Puzzle" },
+        "choices": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Choice" }
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "ending" } }, "required": ["type"] },
+          "then": { "not": { "required": ["choices"] } }
+        }
+      ]
+    }
+  },
+
+  "additionalProperties": false
+}
+
+Kiterjesztem a kész modellt új puzzle típusokkal és haladó feltételekkel / hatásokkal, plusz adok több mintát, amit azonnal be tudsz drótozni. Nem cserélem le a korábbi sémádat; ez ráépül (visszafelé kompatibilis).
+
+Új puzzle típusok (bővítés)
+1) cloze_text – hiányos mondat(k) kitöltése
+
+Több lyuk, mindhez megadott helyes megoldás(oka/k).
+
+Normalizálás, részpontozás.
+
+Schema-részlet
+
+{
+  "$id": "PuzzleClozeText",
+  "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }],
+  "type": "object",
+  "required": ["blanks"],
+  "properties": {
+    "kind": { "const": "cloze_text" },
+    "blanks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id","accepted_answers"],
+        "properties": {
+          "id": { "type": "string" },
+          "accepted_answers": { "type": "array", "items": { "type": "string" } },
+          "normalize": { "type": "array", "items": { "type":"string","enum":["trim","lower","ascii","noaccents"] } },
+          "weight": { "type": "number", "default": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "shuffle_blanks": { "type": "boolean", "default": false },
+    "partial_scoring": { "type": "boolean", "default": true }
+  },
+  "additionalProperties": false
+}
+
+Node példa
+
+{
+  "id": "N_DE_KONJ",
+  "part": 2,
+  "title": "Német névelők – gyakorló",
+  "text": "Töltsd ki a hiányzó névelőket.",
+  "puzzle": {
+    "id": "pz_de_articles_1",
+    "kind": "cloze_text",
+    "prompt": "— Tisch, — Lampe, — Kind",
+    "blanks": [
+      { "id": "b1", "accepted_answers": ["der"] },
+      { "id": "b2", "accepted_answers": ["die"] },
+      { "id": "b3", "accepted_answers": ["das"] }
+    ],
+    "time_limit_ms": 45000,
+    "attempts_max": 2,
+    "success": { "effects": [{ "op":"add_currency","currency_id":"crystal","value":2 }] },
+    "failure": { "effects": [{ "op":"add_stat","stat_id":"corruption","value":1 }] },
+    "gate_choices_until_solved": true
+  },
+  "choices": [{ "label":"Tovább", "next_id":"3A1" }]
+}
+
+2) matching – párosítás
+
+Bal és jobb oszlop, összekötés. Részpontozás támogatott.
+
+Schema-részlet
+
+{
+  "$id": "PuzzleMatching",
+  "allOf": [{ "$ref": "#/definitions/PuzzleCommon" }],
+  "type": "object",
+  "required": ["left","right","pairs"],
+  "properties": {
+    "kind": { "const": "matching" },
+    "left": { "type": "array", "items": { "type":"string" }, "minItems": 2 },
+    "right": { "type": "array", "items": { "type":"string" }, "minItems": 2 },
+    "pairs": { "type": "array", "items": { "type":"array", "items": { "type":"integer" }, "minItems": 2, "maxItems": 2 } },
+    "shuffle": { "type": "boolean", "default": true },
+    "partial_scoring": { "type":"boolean", "default": true }
+  },
+  "additionalProperties": false
+}
+
+
+Node példa
+{
+  "id": "N_MATCH_SYNONYM",
+  "part": 2,
+  "title": "Szinonimák párosítása",
+  "text": "Kösd össze a jelentésben egyezőket.",
+  "puzzle": {
+    "id": "pz_matching_1",
+    "kind": "matching",
+    "prompt": "Párosítsd!",
+    "left": ["bátor","gyors","hideg"],
+    "right": ["fagyos","merész","sebes"],
+    "pairs": [[0,1],[1,2],[2,0]],
+    "time_limit_ms": 30000,
+    "attempts_max": 2,
+    "success": { "effects":[{ "op":"add_item","item_id":"silver_key","qty":1 }] }
+  },
+  "choices":[{ "label":"Tovább", "next_id":"2A" }]
+}
+
+3) ordering – sorrendbe rendezés
+
+Elemek helyes sorrendje (pl. időrend, lépések).
+
+Schema-részlet
+
+{
+  "$id": "PuzzleOrdering",
+  "allOf": [{ "$ref":"#/definitions/PuzzleCommon" }],
+  "type": "object",
+  "required": ["options","correct_order"],
+  "properties": {
+    "kind": { "const": "ordering" },
+    "options": { "type":"array", "items": { "type":"string" }, "minItems": 3 },
+    "correct_order": { "type":"array", "items": { "type":"integer" }, "minItems": 3 },
+    "partial_scoring": { "type":"boolean", "default": true }
+  },
+  "additionalProperties": false
+}
+
+4) hotspot – képen kijelölés
+
+Kijelölt terület(ek) azonosítása; több jó megoldás is lehet.
+
+Schema-részlet
+
+{
+  "$id": "PuzzleHotspot",
+  "allOf": [{ "$ref":"#/definitions/PuzzleCommon" }],
+  "type": "object",
+  "required": ["media","areas"],
+  "properties": {
+    "kind": { "const": "hotspot" },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type":"object",
+        "required": ["id","shape","coords"],
+        "properties": {
+          "id": { "type":"string" },
+          "shape": { "type":"string", "enum":["rect","circle","poly"] },
+          "coords": { "type":"array", "items": { "type":"number" }, "minItems": 3 },
+          "correct": { "type":"boolean", "default":false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "allow_multiple": { "type":"boolean","default": false }
+  },
+  "additionalProperties": false
+}
+
+Node példa (a démonképre)
+{
+  "id": "N_HOTSPOT_CHAINS",
+  "part": 3,
+  "title": "Hol a lánc",
+  "text": "Jelöld be a lánc rögzítési pontjait!",
+  "media": [{ "asset_id":"img_demon_lava_v1","role":"illustration" }],
+  "puzzle": {
+    "id": "pz_hotspot_chains",
+    "kind": "hotspot",
+    "prompt": "Kattints a láncok falhoz rögzített helyeire.",
+    "media": [{ "asset_id":"img_demon_lava_v1","role":"illustration" }],
+    "areas": [
+      { "id":"a1", "shape":"rect", "coords":[310,220,350,260], "correct":true },
+      { "id":"a2", "shape":"rect", "coords":[470,300,515,340], "correct":true },
+      { "id":"a3", "shape":"rect", "coords":[120,120,160,160], "correct":false }
+    ],
+    "allow_multiple": true,
+    "time_limit_ms": 20000,
+    "attempts_max": 2,
+    "success": { "effects":[{ "op":"add_currency","currency_id":"coin","value":7 }] },
+    "failure": { "effects":[{ "op":"add_stat","stat_id":"health","value":-1 }] },
+    "gate_choices_until_solved": true
+  },
+  "choices":[{ "label":"Tovább", "next_id":"3A2" }]
+}
+
+Haladó feltételek (requirements)
+Logikai kompozíció
+
+all_of, any_of, not – összetett logika bármely alapfeltételből.
+
+Schema-részlet
+
+{
+  "$id": "RequirementExpr",
+  "oneOf": [
+    { "$ref":"#/definitions/Requirement" },
+    {
+      "type":"object",
+      "required":["all_of"],
+      "properties": { "all_of": { "type":"array", "items": { "$ref":"#/definitions/RequirementExpr" }, "minItems": 1 } },
+      "additionalProperties": false
+    },
+    {
+      "type":"object",
+      "required":["any_of"],
+      "properties": { "any_of": { "type":"array", "items": { "$ref":"#/definitions/RequirementExpr" }, "minItems": 1 } },
+      "additionalProperties": false
+    },
+    {
+      "type":"object",
+      "required":["not"],
+      "properties": { "not": { "$ref":"#/definitions/RequirementExpr" } },
+      "additionalProperties": false
+    }
+  ]
+}
+
+Új alapfeltételek
+
+puzzle_solved: adott puzzle megoldva-e.
+
+visited_node: járt-e a játékos egy csomóponton.
+
+stat_between: stat alsó-felső tartomány.
+
+inventory_lt és currency_lt: mennyiség kisebb mint.
+
+Schema-kiegészítés
+
+{
+  "definitions": {
+    "Requirement": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "type":"string",
+          "enum":[
+            "has_item","inventory_lt",
+            "currency_gte","currency_lt",
+            "stat_gte","stat_between",
+            "flag_is",
+            "puzzle_solved",
+            "visited_node"
+          ]
+        },
+        "item_id": { "type":"string" },
+        "qty": { "type":"number" },
+        "currency_id": { "type":"string" },
+        "value": { "type":"number" },
+        "min": { "type":"number" },
+        "max": { "type":"number" },
+        "stat_id": { "type":"string" },
+        "flag": { "type":"string" },
+        "puzzle_id": { "type":"string" },
+        "node_id": { "type":"string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+
+Példa – összetett feltétel
+
+{
+  "label": "Kinyitom az ezüstajtót",
+  "next_id": "5Y",
+  "requirements": {
+    "all_of": [
+      { "op":"has_item","item_id":"silver_key","qty":1 },
+      { "op":"stat_between","stat_id":"reputation","min":0,"max":10 },
+      {
+        "any_of": [
+          { "op":"puzzle_solved","puzzle_id":"pz_matching_1" },
+          { "op":"visited_node","node_id":"N_HOTSPOT_CHAINS" }
+        ]
+      }
+    ]
+  },
+  "effects": [{ "op":"remove_item","item_id":"silver_key","qty":1 }],
+  "disabled_reason": "Kell az ezüstkulcs és legalább semleges hírnév."
+}
+
+Haladó hatások (effects)
+Új műveletek
+
+goto: azonnali ugrás egy next_id-re (pl. random ágból).
+
+unlock_choice: egy csomóponton belüli választás aktiválása.
+
+lock_choice: választás tiltása.
+
+set_timer: időzített jelző beállítása (flag + lejárat).
+
+loot_table: véletlen zsákmány súlyozott valószínűségekkel.
+
+Schema-kiegészítés
+
+{
+  "definitions": {
+    "Effect": {
+      "type":"object",
+      "required":["op"],
+      "properties": {
+        "op": {
+          "type":"string",
+          "enum":[
+            "add_item","remove_item","add_currency","add_stat","set_flag","log",
+            "goto","unlock_choice","lock_choice","set_timer","loot_table"
+          ]
+        },
+        "next_id": { "type":"string" },
+        "node_id": { "type":"string" },
+        "choice_index": { "type":"integer" },
+        "timer_flag": { "type":"string" },
+        "expires_in_ms": { "type":"integer" },
+        "table": {
+          "type":"array",
+          "items":{
+            "type":"object",
+            "required":["weight","effects"],
+            "properties": {
+              "weight": { "type":"number" },
+              "effects": { "type":"array", "items": { "$ref":"#/definitions/Effect" } }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+
+pelda - loot_table
+
+{
+  "effects": [
+    {
+      "op":"loot_table",
+      "table":[
+        { "weight": 60, "effects": [{ "op":"add_currency","currency_id":"coin","value":5 }] },
+        { "weight": 30, "effects": [{ "op":"add_item","item_id":"infernal_shard","qty":1 }] },
+        { "weight": 10, "effects": [{ "op":"add_stat","stat_id":"reputation","value":1 }] }
+      ]
+    }
+  ]
+}
+
+Példa – időkapu
+
+{
+  "on_enter": {
+    "effects": [
+      { "op":"set_timer","timer_flag":"door_open","expires_in_ms": 120000 }
+    ]
+  },
+  "choices": [
+    {
+      "label": "Átslisszanok",
+      "next_id": "ROOM_SAFE",
+      "requirements": { "op":"flag_is","flag":"door_open","value": true },
+      "disabled_reason": "Az ajtó most zárva van."
+    }
+  ]
+}
+
+Randomizáció a puzzle-ökben
+
+Opciók keverése: shuffle, shuffle_blanks.
+
+Variánsok: ugyanazon puzzle több változata súlyozva.
+
+Schema kiegészítés (PuzzleCommon)
+
+{
+  "definitions": {
+    "PuzzleCommon": {
+      "type":"object",
+      "required":["id","kind","prompt"],
+      "properties": {
+        "variants": {
+          "type":"array",
+          "items": {
+            "type":"object",
+            "required":["weight","override"],
+            "properties": {
+              "weight": { "type":"number" },
+              "override": { "type":"object" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}
+
+Példa – numeric variánsok
+
+{
+  "id": "N_MATH_VAR",
+  "part": 3,
+  "title": "Véletlen matek",
+  "text": "Gyors szorzás és összeadás.",
+  "puzzle": {
+    "id": "pz_math_rand",
+    "kind": "numeric",
+    "prompt": "Számold ki: 17 × 3 + 4 = ?",
+    "answer": 55,
+    "variants": [
+      { "weight": 1, "override": { "prompt":"Számold ki: 14 × 4 + 3 = ?", "answer": 59 } },
+      { "weight": 1, "override": { "prompt":"Számold ki: 12 × 5 + 7 = ?", "answer": 67 } }
+    ],
+    "time_limit_ms": 15000,
+    "attempts_max": 2,
+    "success": { "effects":[{ "op":"add_currency","currency_id":"coin","value":4 }] },
+    "failure": { "effects":[{ "op":"add_stat","stat_id":"health","value":-1 }] }
+  },
+  "choices":[{ "label":"Tovább", "next_id":"3A2" }]
+}
+
+Adaptív nehézség (egyszerű modell)
+
+Puzzle szinten engedhetsz hint költséget vagy dinamikus időt.
+
+Egyszerű jelölés
+
+{
+  "puzzle": {
+    "id": "pz_de_articles_2",
+    "kind": "cloze_text",
+    "prompt": "— Hund, — Katze, — Haus",
+    "blanks": [
+      { "id": "b1", "accepted_answers": ["der"] },
+      { "id": "b2", "accepted_answers": ["die"] },
+      { "id": "b3", "accepted_answers": ["das"] }
+    ],
+    "time_limit_ms": 30000,
+    "attempts_max": 3,
+    "hints": ["Általános nemek: der, die, das."],
+    "success": { "effects":[{ "op":"add_currency","currency_id":"crystal","value":1 }] },
+    "failure": { "effects":[{ "op":"add_stat","stat_id":"corruption","value":1 }] },
+    "gate_choices_until_solved": true,
+    "dynamic": {
+      "if_attempts_gt": 1,
+      "give_hint_cost": { "currency_id":"coin", "value": 1 },
+      "extra_time_ms": 10000
+    }
+  }
+}
+
+(A kliensedben implementálod: ha attempts>1 és van elég coin, felajánlja a hintet, levonja a költséget, ad plusz időt)
