@@ -10,6 +10,7 @@ import DiceRollModal, { DiceRollResult } from '../components/DiceRollModal'
 import QuizModal, { QuizResult } from '../components/QuizModal'
 import MemoryGameModal, { MemoryGameResult } from '../components/MemoryGameModal'
 import ShopModal, { ShopResult } from '../components/ShopModal'
+import CombatModal, { CombatResult } from '../components/CombatModal'
 import Toast from '../components/Toast'
 import './GameView.css'
 
@@ -143,7 +144,31 @@ const gameScenes: Record<string, any> = {
     storyText: `Végre a kijárat! A friss levegő megkönnyebbülést hoz.
       De várj... valami közeledik a sötétben...`,
     decisions: [
-      { id: 'decision_continue_exit', text: '⚔️ Felkészülsz...', nextScene: 'scene_end' }
+      {
+        id: 'decision_fight_monster',
+        text: '⚔️ Felkészülsz a harcra!',
+        action: { type: 'OPEN_MODAL', modal_id: 'combat' }
+      }
+    ]
+  },
+  scene_combat_victory: {
+    id: 'scene_combat_victory',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/4caf50?text=Gyozelem',
+    storyText: `Hatalmas csata volt, de győztél! A szörny legyőzve hever a földön.
+      Sikerült kijutnod a házból!`,
+    decisions: [
+      { id: 'decision_victory_end', text: 'Tovább', nextScene: 'scene_end' }
+    ]
+  },
+  scene_combat_defeat: {
+    id: 'scene_combat_defeat',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/ff6b6b?text=Vereseg',
+    storyText: `A szörny túl erős volt... Utolsó pillanatokban eszméletét veszíted...`,
+    decisions: [
+      { id: 'decision_menu', text: 'Vissza a főmenübe', action: { type: 'NAVIGATE', target: 'main_menu' } },
+      { id: 'decision_restart', text: 'Újrakezdés', action: { type: 'LOAD_LATEST_SAVE' } }
     ]
   },
   scene_end: {
@@ -174,7 +199,8 @@ const merchantItems = [
     icon: '⛑️',
     price: 20,
     currencyType: 'gold',
-    description: '+5 védelem a fejre'
+    description: '+5 védelem a fejre',
+    stats: { strength: 2, experience: 1 }
   },
   {
     id: 'mana_potion',
@@ -182,7 +208,8 @@ const merchantItems = [
     icon: '🧪',
     price: 15,
     currencyType: 'gold',
-    description: 'Visszatölt 50 mana-t'
+    description: 'Visszatölt 50 mana-t',
+    stats: { experience: 1 }
   },
   {
     id: 'enchanted_sword',
@@ -190,7 +217,8 @@ const merchantItems = [
     icon: '⚔️',
     price: 50,
     currencyType: 'gold',
-    description: '+10 támadás'
+    description: '+10 támadás',
+    stats: { strength: 5, speed: 2 }
   },
   {
     id: 'crystal_amulet',
@@ -198,7 +226,8 @@ const merchantItems = [
     icon: '📿',
     price: 3,
     currencyType: 'crystal',
-    description: 'Védelem a mágikus támadás ellen'
+    description: 'Védelem a mágikus támadás ellen',
+    stats: { experience: 3 }
   },
   {
     id: 'fire_scroll',
@@ -206,7 +235,8 @@ const merchantItems = [
     icon: '📜',
     price: 30,
     currencyType: 'mana',
-    description: 'Tűzlabda varázslat (1x használat)'
+    description: 'Tűzlabda varázslat (1x használat)',
+    stats: { strength: 3 }
   },
   {
     id: 'shield',
@@ -214,13 +244,28 @@ const merchantItems = [
     icon: '🛡️',
     price: 35,
     currencyType: 'gold',
-    description: '+8 védelem'
+    description: '+8 védelem',
+    stats: { strength: 3, speed: 1 }
   }
 ]
 
+const shadowMonster = {
+  name: 'Árnyék Szörny',
+  icon: '👹',
+  strength: 8,
+  speed: 6,
+  experience: 6
+}
+
 interface InventoryState {
   currencies: Array<{ id: string; name: string; icon: string; value: number }>
-  items: Array<{ id: string; name: string; icon: string; quantity: number }>
+  items: Array<{
+    id: string
+    name: string
+    icon: string
+    quantity: number
+    stats?: { strength?: number; speed?: number; experience?: number }
+  }>
 }
 
 interface ToastNotification {
@@ -253,6 +298,7 @@ export default function GameView() {
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false)
   const [isMemoryGameOpen, setIsMemoryGameOpen] = useState(false)
   const [isShopOpen, setIsShopOpen] = useState(false)
+  const [isCombatOpen, setIsCombatOpen] = useState(false)
 
   // Toast notifications
   const [toasts, setToasts] = useState<ToastNotification[]>([])
@@ -279,7 +325,13 @@ export default function GameView() {
     }))
   }
 
-  const addItem = (itemId: string, itemName: string, itemIcon: string, quantity: number) => {
+  const addItem = (
+    itemId: string,
+    itemName: string,
+    itemIcon: string,
+    quantity: number,
+    stats?: { strength?: number; speed?: number; experience?: number }
+  ) => {
     setInventory((prev) => {
       const existingItem = prev.items.find((item) => item.id === itemId)
       if (existingItem) {
@@ -294,7 +346,7 @@ export default function GameView() {
       } else {
         return {
           ...prev,
-          items: [...prev.items, { id: itemId, name: itemName, icon: itemIcon, quantity }]
+          items: [...prev.items, { id: itemId, name: itemName, icon: itemIcon, quantity, stats }]
         }
       }
     })
@@ -311,6 +363,8 @@ export default function GameView() {
         setIsMemoryGameOpen(true)
       } else if (decision.action.modal_id === 'shop') {
         setIsShopOpen(true)
+      } else if (decision.action.modal_id === 'combat') {
+        setIsCombatOpen(true)
       }
       return
     }
@@ -423,8 +477,11 @@ export default function GameView() {
           )
         }))
 
-        // Add item to inventory
-        addItem(item.id, item.name, item.icon, 1)
+        // Find full item data with stats
+        const fullItem = merchantItems.find((mi) => mi.id === item.id)
+
+        // Add item to inventory with stats
+        addItem(item.id, item.name, item.icon, 1, fullItem?.stats)
 
         // Show toast for each item
         showToast(`+ ${item.name}`, 'success', item.icon)
@@ -460,6 +517,28 @@ export default function GameView() {
     }
 
     console.log('Shop result:', result)
+  }
+
+  const handleCombatResult = (result: CombatResult | null) => {
+    setIsCombatOpen(false)
+
+    if (!result) return
+
+    if (result.victory) {
+      // Victory: go to victory scene
+      showToast('Győzelem!', 'success', '🎉')
+      setTimeout(() => {
+        transitionToScene('scene_combat_victory')
+      }, 1000)
+    } else {
+      // Defeat: go to defeat scene
+      showToast('Vereség...', 'error', '💀')
+      setTimeout(() => {
+        transitionToScene('scene_combat_defeat')
+      }, 1000)
+    }
+
+    console.log('Combat result:', result)
   }
 
   const transitionToScene = (sceneId: string) => {
@@ -549,6 +628,13 @@ export default function GameView() {
           crystal: inventory.currencies.find((c) => c.id === 'crystal')?.value || 0,
           mana: inventory.currencies.find((c) => c.id === 'mana')?.value || 0
         }}
+      />
+
+      <CombatModal
+        isOpen={isCombatOpen}
+        onClose={handleCombatResult}
+        enemy={shadowMonster}
+        playerItems={inventory.items}
       />
 
       {/* Toast Notifications */}
