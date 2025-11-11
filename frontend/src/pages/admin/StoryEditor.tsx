@@ -75,12 +75,11 @@ export default function StoryEditor() {
       await storiesApi.update(story.id, {
         title,
         description,
-        language,
         isPublic,
         version: story.version,
       });
 
-      setStory({ ...story, title, description, language, isPublic, version: story.version + 1 });
+      setStory({ ...story, title, description, isPublic, version: story.version + 1 });
       alert('Mentve!');
     } catch (err: any) {
       console.error('Failed to save metadata:', err);
@@ -298,10 +297,11 @@ export default function StoryEditor() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Nyelv</label>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled>
                     <option value="hu">Magyar</option>
                     <option value="en">English</option>
                   </select>
+                  <span className="hint">⚠️ A nyelv a létrehozás után nem módosítható</span>
                 </div>
 
                 <div className="form-group">
