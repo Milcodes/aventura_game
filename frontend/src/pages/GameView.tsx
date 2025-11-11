@@ -9,6 +9,7 @@ import InventoryModal from '../components/InventoryModal'
 import DiceRollModal, { DiceRollResult } from '../components/DiceRollModal'
 import QuizModal, { QuizResult } from '../components/QuizModal'
 import MemoryGameModal, { MemoryGameResult } from '../components/MemoryGameModal'
+import ShopModal, { ShopResult } from '../components/ShopModal'
 import Toast from '../components/Toast'
 import './GameView.css'
 
@@ -89,7 +90,7 @@ const gameScenes: Record<string, any> = {
     storyText: `Remek! Megoldottad a memória próbáját! Az ajtó lassan kinyílik,
       felfedve egy titokzatos folyosót...`,
     decisions: [
-      { id: 'decision_continue', text: 'Tovább', nextScene: 'scene_end' }
+      { id: 'decision_continue', text: 'Tovább a folyosón', nextScene: 'scene_corridor' }
     ]
   },
   scene_memory_failure: {
@@ -100,6 +101,49 @@ const gameScenes: Record<string, any> = {
       Az ajtó bezárva marad. Talán később visszatérhetsz...`,
     decisions: [
       { id: 'decision_back', text: 'Visszamész', nextScene: 'scene_end' }
+    ]
+  },
+  scene_corridor: {
+    id: 'scene_corridor',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/667eea?text=Folyoso',
+    storyText: `A folyosó hosszú és sötét. A végén egy alakot látsz - egy árus állítólag
+      ritka tárgyakat kínál kalandoroknak. Mit teszel?`,
+    decisions: [
+      {
+        id: 'decision_talk_merchant',
+        text: '🛒 Odamész az árushoz',
+        nextScene: 'scene_merchant'
+      },
+      {
+        id: 'decision_skip_merchant',
+        text: 'Továbbmész a kijárat felé',
+        nextScene: 'scene_exit'
+      }
+    ]
+  },
+  scene_merchant: {
+    id: 'scene_merchant',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/ff9800?text=Arus',
+    storyText: `Az árus barátságosan köszönt: "Üdvözöllek, kalandor! Nálam mindig
+      megtalálod, amire szükséged van. Szeretnél vásárolni?"`,
+    decisions: [
+      {
+        id: 'decision_open_shop',
+        text: '🛒 Megnézem az áruit',
+        action: { type: 'OPEN_MODAL', modal_id: 'shop' }
+      }
+    ]
+  },
+  scene_exit: {
+    id: 'scene_exit',
+    mediaType: 'image' as const,
+    mediaUrl: 'https://via.placeholder.com/800x400/1a1a2e/4caf50?text=Kijarat',
+    storyText: `Végre a kijárat! A friss levegő megkönnyebbülést hoz.
+      De várj... valami közeledik a sötétben...`,
+    decisions: [
+      { id: 'decision_continue_exit', text: '⚔️ Felkészülsz...', nextScene: 'scene_end' }
     ]
   },
   scene_end: {
@@ -122,6 +166,57 @@ const chestQuiz = {
     { id: 'opt_d', text: 'Hafnium', isCorrect: false },
   ]
 }
+
+const merchantItems = [
+  {
+    id: 'titan_helmet',
+    name: 'Titán sisak',
+    icon: '⛑️',
+    price: 20,
+    currencyType: 'gold',
+    description: '+5 védelem a fejre'
+  },
+  {
+    id: 'mana_potion',
+    name: 'Mana főzet',
+    icon: '🧪',
+    price: 15,
+    currencyType: 'gold',
+    description: 'Visszatölt 50 mana-t'
+  },
+  {
+    id: 'enchanted_sword',
+    name: 'Megbűvölt kard',
+    icon: '⚔️',
+    price: 50,
+    currencyType: 'gold',
+    description: '+10 támadás'
+  },
+  {
+    id: 'crystal_amulet',
+    name: 'Kristály amulett',
+    icon: '📿',
+    price: 3,
+    currencyType: 'crystal',
+    description: 'Védelem a mágikus támadás ellen'
+  },
+  {
+    id: 'fire_scroll',
+    name: 'Tűz tekercs',
+    icon: '📜',
+    price: 30,
+    currencyType: 'mana',
+    description: 'Tűzlabda varázslat (1x használat)'
+  },
+  {
+    id: 'shield',
+    name: 'Acél pajzs',
+    icon: '🛡️',
+    price: 35,
+    currencyType: 'gold',
+    description: '+8 védelem'
+  }
+]
 
 interface InventoryState {
   currencies: Array<{ id: string; name: string; icon: string; value: number }>
@@ -157,6 +252,7 @@ export default function GameView() {
   const [isDiceModalOpen, setIsDiceModalOpen] = useState(false)
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false)
   const [isMemoryGameOpen, setIsMemoryGameOpen] = useState(false)
+  const [isShopOpen, setIsShopOpen] = useState(false)
 
   // Toast notifications
   const [toasts, setToasts] = useState<ToastNotification[]>([])
@@ -213,6 +309,8 @@ export default function GameView() {
         setIsQuizModalOpen(true)
       } else if (decision.action.modal_id === 'memory_game') {
         setIsMemoryGameOpen(true)
+      } else if (decision.action.modal_id === 'shop') {
+        setIsShopOpen(true)
       }
       return
     }
@@ -307,6 +405,63 @@ export default function GameView() {
     console.log('Memory game result:', result)
   }
 
+  const handleShopResult = (result: ShopResult | null) => {
+    setIsShopOpen(false)
+
+    if (!result) return
+
+    if (result.purchased && result.items.length > 0) {
+      // Process purchases
+      result.items.forEach((item) => {
+        // Deduct currency
+        setInventory((prev) => ({
+          ...prev,
+          currencies: prev.currencies.map((curr) =>
+            curr.id === item.currencyType
+              ? { ...curr, value: curr.value - item.price }
+              : curr
+          )
+        }))
+
+        // Add item to inventory
+        addItem(item.id, item.name, item.icon, 1)
+
+        // Show toast for each item
+        showToast(`+ ${item.name}`, 'success', item.icon)
+      })
+
+      // Show total cost toast
+      setTimeout(() => {
+        const totalGold = result.totalCost.gold || 0
+        const totalCrystal = result.totalCost.crystal || 0
+        const totalMana = result.totalCost.mana || 0
+
+        if (totalGold > 0) {
+          showToast(`-${totalGold} Arany`, 'info', '💰')
+        }
+        if (totalCrystal > 0) {
+          setTimeout(() => showToast(`-${totalCrystal} Kristály`, 'info', '💎'), 200)
+        }
+        if (totalMana > 0) {
+          setTimeout(() => showToast(`-${totalMana} Mana`, 'info', '⚗️'), 400)
+        }
+      }, result.items.length * 200)
+
+      // Go to exit scene after purchases
+      setTimeout(() => {
+        transitionToScene('scene_exit')
+      }, 2000)
+    } else {
+      // No purchase or skipped
+      showToast('Nem vásároltál semmit', 'info')
+      setTimeout(() => {
+        transitionToScene('scene_exit')
+      }, 1000)
+    }
+
+    console.log('Shop result:', result)
+  }
+
   const transitionToScene = (sceneId: string) => {
     setIsTransitioning(true)
 
@@ -383,6 +538,17 @@ export default function GameView() {
       <MemoryGameModal
         isOpen={isMemoryGameOpen}
         onClose={handleMemoryGameResult}
+      />
+
+      <ShopModal
+        isOpen={isShopOpen}
+        onClose={handleShopResult}
+        items={merchantItems}
+        availableCurrency={{
+          gold: inventory.currencies.find((c) => c.id === 'gold')?.value || 0,
+          crystal: inventory.currencies.find((c) => c.id === 'crystal')?.value || 0,
+          mana: inventory.currencies.find((c) => c.id === 'mana')?.value || 0
+        }}
       />
 
       {/* Toast Notifications */}
