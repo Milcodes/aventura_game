@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import CategoryCard from '../components/CategoryCard'
 import OngoingGameCard from '../components/OngoingGameCard'
@@ -34,14 +35,16 @@ const ongoingGames = [
 ]
 
 export default function Dashboard() {
+  const navigate = useNavigate()
+
   const handleCategoryClick = (categoryId: string) => {
     // TODO: Navigate to category detail view or fetch stories
     console.log('Selected category:', categoryId)
   }
 
   const handleContinueGame = (gameId: string) => {
-    // TODO: Navigate to game view
-    console.log('Continue game:', gameId)
+    // For now, navigate to a demo game
+    navigate(`/game/story-${gameId}/session-${gameId}`)
   }
 
   return (

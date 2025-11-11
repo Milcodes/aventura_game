@@ -1,0 +1,28 @@
+.game-view {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+  padding-bottom: 80px; /* Space for inventory bar */
+}
+
+.game-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+}
+
+.game-content.transitioning {
+  opacity: 0.3;
+  transform: scale(0.98);
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .game-view {
+    padding-bottom: 100px;
+  }
+
+  .game-content {
+    padding: 0.5rem;
+  }
+}
