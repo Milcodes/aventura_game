@@ -26,22 +26,105 @@ model User {
 
 // Story model (user-created stories)
 model Story {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
-  language    String   @default("hu")
-  version     String   @default("1.0")
-  content     Json     // Full story JSON
-  isPublished Boolean  @default(false)
+  description String?
+  language    String      @default("hu")
+  version     Int         @default(1)
+  status      StoryStatus @default(DRAFT)
+  isPublic    Boolean     @default(false) // Public = forkable
+  content     Json?       // Legacy: Full story JSON (optional)
   authorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   sessions GameSession[]
+  nodes    StoryNode[]
+  branches Branch[]
 
   @@index([authorId])
-  @@index([isPublished])
+  @@index([status])
+  @@index([isPublic])
   @@map("stories")
+}
+
+enum StoryStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// Story Node (both mainline and branch nodes)
+model StoryNode {
+  id         String   @id @default(uuid())
+  storyId    String
+  branchId   String? // null = mainline, set = branch node
+  order      Int // Position in sequence
+  label      String // "Születés", "Gyerekkor", "Barna Szoba belül"
+
+  // Content
+  mediaType  String? // "image", "video", "text"
+  mediaUrl   String?
+  storyText  String?
+
+  // Decisions (stored as JSON array)
+  decisions  Json @default("[]") // [{text, targetNodeId, modalConfig, conditions}]
+
+  // Effects (inventory/flag changes)
+  effects    Json @default("[]") // [{type: 'ADD_ITEM', itemId, quantity}]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  story  Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([branchId])
+  @@index([order])
+  @@map("story_nodes")
+}
+
+// Branch (mellékszál)
+model Branch {
+  id             String     @id @default(uuid())
+  storyId        String
+  name           String // "Rejtélyes Ház", "Barna Szoba"
+  type           BranchType @default(LOCATION)
+
+  // Entry/Exit points
+  entryNodeId    String // Mainline or parent branch node ID
+  exitNodeIds    Json // ["mainline_id", "DEATH"]
+  exitType       ExitType @default(NODE)
+
+  // Nesting
+  parentBranchId String?
+  depth          Int @default(1) // Max 3
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  story        Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  parentBranch Branch?  @relation("NestedBranches", fields: [parentBranchId], references: [id], onDelete: Cascade)
+  childBranches Branch[] @relation("NestedBranches")
+  nodes        StoryNode[]
+
+  @@index([storyId])
+  @@index([parentBranchId])
+  @@map("branches")
+}
+
+enum BranchType {
+  LOCATION // Ház, Kastély, Erdő
+  ROOM     // Szoba egy location-ben
+  EVENT    // Időbeli esemény
+}
+
+enum ExitType {
+  NODE  // Visszatér node-hoz
+  DEATH // Halál
 }
 
 // Game session model
