@@ -8,8 +8,7 @@ import InventoryBar from '../components/InventoryBar'
 import InventoryModal from '../components/InventoryModal'
 import DiceRollModal, { DiceRollResult } from '../components/DiceRollModal'
 import QuizModal, { QuizResult } from '../components/QuizModal'
-import HTMLModal, { HTMLModalResult } from '../components/HTMLModal'
-import { memoryGameHTML } from '../components/games/MemoryGame'
+import MemoryGameModal, { MemoryGameResult } from '../components/MemoryGameModal'
 import Toast from '../components/Toast'
 import './GameView.css'
 
@@ -285,7 +284,7 @@ export default function GameView() {
     console.log('Quiz result:', result)
   }
 
-  const handleMemoryGameResult = (result: HTMLModalResult | null) => {
+  const handleMemoryGameResult = (result: MemoryGameResult | null) => {
     setIsMemoryGameOpen(false)
 
     if (!result) return
@@ -381,11 +380,9 @@ export default function GameView() {
         timeLimit={30}
       />
 
-      <HTMLModal
+      <MemoryGameModal
         isOpen={isMemoryGameOpen}
         onClose={handleMemoryGameResult}
-        title="🧩 Memória Próba"
-        htmlContent={memoryGameHTML}
       />
 
       {/* Toast Notifications */}
