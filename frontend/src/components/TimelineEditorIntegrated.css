@@ -245,25 +245,133 @@
   background: #4338ca;
 }
 
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase touch targets for mobile */
+  .timeline-actions button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1rem;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .btn-reload {
+    min-width: 44px;
+  }
+
+  /* Add more spacing between interactive elements */
+  .timeline-actions {
+    gap: 1rem;
+  }
+
+  /* Prevent text selection during drag */
+  .timeline-editor-wrapper {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .timeline-toolbar {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .timeline-info h2 {
+    font-size: 1.25rem;
   }
 
   .timeline-actions {
     width: 100%;
     justify-content: stretch;
+    flex-wrap: wrap;
   }
 
   .timeline-actions button {
     flex: 1;
+    min-width: 100px;
   }
 
   .timeline-stats {
     flex-direction: column;
     gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .stat {
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem;
+    background: #f9fafb;
+    border-radius: 0.5rem;
+  }
+
+  .timeline-help {
+    padding: 0.75rem 1rem;
+  }
+
+  .timeline-help p {
+    font-size: 0.8rem;
+  }
+
+  .validation-errors {
+    margin: 0.75rem 1rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .timeline-toolbar {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .timeline-info h2 {
+    font-size: 1.125rem;
+  }
+
+  .timeline-actions {
+    flex-direction: column;
+  }
+
+  .timeline-actions button {
+    width: 100%;
+  }
+
+  .timeline-stats {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1rem;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 480px) and (orientation: landscape) {
+  .timeline-toolbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .timeline-stats {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem;
+  }
+
+  .stat {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .timeline-help {
+    padding: 0.5rem 1rem;
   }
 }

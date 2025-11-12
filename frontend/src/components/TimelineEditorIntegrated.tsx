@@ -18,6 +18,7 @@ import {
 } from '../adapters/timelineAdapter';
 import { TimelineData } from '../adapters/timelineAdapter.types';
 import TimelineEditor from './TimelineEditor';
+import PerformanceProfiler from './PerformanceProfiler';
 import './TimelineEditorIntegrated.css';
 
 interface TimelineEditorIntegratedProps {
@@ -241,8 +242,13 @@ function TimelineEditorIntegrated({
   // Render loading state
   if (loading) {
     return (
-      <div className="timeline-integrated-loading">
-        <div className="spinner"></div>
+      <div
+        className="timeline-integrated-loading"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading story"
+      >
+        <div className="spinner" aria-hidden="true"></div>
         <p>Történet betöltése...</p>
       </div>
     );
@@ -251,10 +257,19 @@ function TimelineEditorIntegrated({
   // Render error state
   if (error) {
     return (
-      <div className="timeline-integrated-error">
+      <div
+        className="timeline-integrated-error"
+        role="alert"
+        aria-live="assertive"
+      >
         <h2>⚠️ Hiba történt</h2>
         <p>{error}</p>
-        <button onClick={loadStory}>🔄 Újra próbálom</button>
+        <button
+          onClick={loadStory}
+          aria-label="Retry loading story"
+        >
+          🔄 Újra próbálom
+        </button>
       </div>
     );
   }
@@ -262,7 +277,11 @@ function TimelineEditorIntegrated({
   // Render timeline editor
   if (!timelineData) {
     return (
-      <div className="timeline-integrated-error">
+      <div
+        className="timeline-integrated-error"
+        role="alert"
+        aria-live="polite"
+      >
         <h2>⚠️ Nincs adat</h2>
         <p>A történet nem tartalmaz adatokat.</p>
       </div>
@@ -270,19 +289,23 @@ function TimelineEditorIntegrated({
   }
 
   return (
-    <div className="timeline-integrated">
+    <div className="timeline-integrated" role="main" aria-label="Timeline Editor">
       {/* Toolbar */}
-      <div className="timeline-toolbar">
+      <nav className="timeline-toolbar" role="navigation" aria-label="Timeline Editor Controls">
         <div className="timeline-info">
-          <h2>{story?.title}</h2>
-          <span className="version-badge">v{story?.version}</span>
+          <h2 id="story-title">{story?.title}</h2>
+          <span className="version-badge" aria-label={`Version ${story?.version}`}>
+            v{story?.version}
+          </span>
         </div>
 
-        <div className="timeline-actions">
+        <div className="timeline-actions" role="toolbar" aria-label="Timeline Actions">
           <button
             className="btn-validate"
             onClick={handleValidate}
             disabled={saving}
+            aria-label="Validate timeline structure"
+            aria-describedby="validation-status"
           >
             ✓ Validálás
           </button>
@@ -291,6 +314,8 @@ function TimelineEditorIntegrated({
             className="btn-save"
             onClick={handleSave}
             disabled={saving}
+            aria-label={saving ? 'Saving timeline' : 'Save timeline to backend'}
+            aria-busy={saving}
           >
             {saving ? '💾 Mentés...' : '💾 Mentés Backend-be'}
           </button>
@@ -299,68 +324,100 @@ function TimelineEditorIntegrated({
             className="btn-reload"
             onClick={loadStory}
             disabled={saving}
+            aria-label="Reload story from backend"
             title="Újratöltés backend-ről"
           >
             🔄
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Validation errors */}
       {validationErrors.length > 0 && (
-        <div className="validation-errors">
+        <section
+          className="validation-errors"
+          role="alert"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <h3>⚠️ Validációs hibák:</h3>
-          <ul>
+          <ul aria-label="Validation error list">
             {validationErrors.map((err, idx) => (
               <li key={idx}>{err}</li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {/* Stats */}
-      <div className="timeline-stats">
+      <section className="timeline-stats" role="region" aria-label="Timeline Statistics">
         <div className="stat">
           <span className="stat-label">Mainline Events:</span>
-          <span className="stat-value">{timelineData.events.length}</span>
+          <span className="stat-value" aria-label={`${timelineData.events.length} mainline events`}>
+            {timelineData.events.length}
+          </span>
         </div>
         <div className="stat">
           <span className="stat-label">Branches:</span>
-          <span className="stat-value">{timelineData.branches.length}</span>
+          <span className="stat-value" aria-label={`${timelineData.branches.length} branches`}>
+            {timelineData.branches.length}
+          </span>
         </div>
         <div className="stat">
           <span className="stat-label">Total Nodes:</span>
-          <span className="stat-value">
+          <span
+            className="stat-value"
+            aria-label={`${timelineData.events.length + timelineData.branches.reduce((sum, b) => sum + b.events.length, 0)} total nodes`}
+          >
             {timelineData.events.length +
               timelineData.branches.reduce((sum, b) => sum + b.events.length, 0)}
           </span>
         </div>
         <div className="stat">
           <span className="stat-label">Validation:</span>
-          <span className={`stat-value ${validationErrors.length > 0 ? 'error' : 'success'}`}>
+          <span
+            id="validation-status"
+            className={`stat-value ${validationErrors.length > 0 ? 'error' : 'success'}`}
+            role="status"
+            aria-live="polite"
+            aria-label={
+              isValidating
+                ? 'Validating timeline'
+                : validationErrors.length > 0
+                  ? `${validationErrors.length} validation errors found`
+                  : 'Timeline is valid'
+            }
+          >
             {isValidating ? '⏳ Validating...' : validationErrors.length > 0 ? `❌ ${validationErrors.length} errors` : '✅ Valid'}
           </span>
         </div>
-      </div>
+      </section>
 
       {/* Timeline Editor */}
-      <div className="timeline-editor-wrapper">
-        <TimelineEditor
-          initialData={timelineData}
-          onChange={handleTimelineChange}
-        />
-      </div>
+      <section
+        className="timeline-editor-wrapper"
+        role="region"
+        aria-label="Visual Timeline Editor"
+        aria-describedby="timeline-help"
+      >
+        <PerformanceProfiler id="TimelineEditor">
+          <TimelineEditor
+            initialData={timelineData}
+            onChange={handleTimelineChange}
+          />
+        </PerformanceProfiler>
+      </section>
 
       {/* Help text */}
-      <div className="timeline-help">
+      <aside className="timeline-help" id="timeline-help" role="complementary" aria-label="Editor Help">
         <p>
-          💡 <strong>Tipp:</strong> Használd a <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd> gombokat
+          💡 <strong>Tipp:</strong> Használd a <kbd aria-label="Control Z">Ctrl+Z</kbd> / <kbd aria-label="Control Y">Ctrl+Y</kbd> gombokat
           az visszavonáshoz/újra végrehajtáshoz.
         </p>
         <p>
           🎨 Drag-and-drop a node-ok mozgatásához. Klikk a mainline-ra új event hozzáadásához.
         </p>
-      </div>
+      </aside>
     </div>
   );
 }
