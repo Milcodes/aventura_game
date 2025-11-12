@@ -130,13 +130,13 @@ function useUndoRedo<T>(initialState: T) {
 }
 
 // ============= MODAL COMPONENT =============
-const Modal: React.FC<{
+const Modal = React.memo<{
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
-}> = ({ open, onClose, children }) => {
+}>(({ open, onClose, children }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) onClose();
@@ -146,7 +146,7 @@ const Modal: React.FC<{
   }, [open, onClose]);
 
   if (!open) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 z-40 bg-black/50" onClick={onClose} />
@@ -155,7 +155,7 @@ const Modal: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 // ============= MAIN COMPONENT =============
 
@@ -164,7 +164,7 @@ interface TimelineEditorProps {
   onChange?: (data: { events: MainEvent[]; branches: Branch[] }) => void;
 }
 
-export default function TimelineEditor({ initialData, onChange }: TimelineEditorProps = {}) {
+function TimelineEditor({ initialData, onChange }: TimelineEditorProps = {}) {
   const { containerRef, mainX, topY, bottomY, height, width, tToY, yToT, projectPointToSegment, dist2, zoomScale, setZoomScale } = useTimelineGeometry();
 
   // State with undo/redo
@@ -1287,3 +1287,6 @@ export default function TimelineEditor({ initialData, onChange }: TimelineEditor
     </div>
   );
 }
+
+// Export memoized component for performance optimization
+export default React.memo(TimelineEditor);

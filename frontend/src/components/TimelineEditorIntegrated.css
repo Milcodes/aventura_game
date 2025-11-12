@@ -139,6 +139,14 @@
   font-weight: 700;
 }
 
+.stat-value.error {
+  color: #dc2626;
+}
+
+.stat-value.success {
+  color: #16a34a;
+}
+
 /* Timeline editor wrapper */
 .timeline-editor-wrapper {
   flex: 1;

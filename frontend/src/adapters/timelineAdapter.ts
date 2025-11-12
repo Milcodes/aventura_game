@@ -174,7 +174,8 @@ export function validateTimelineForBackend(
  * Transform backend Story data to Timeline Editor format
  */
 export function backendToTimeline(story: Story): TimelineData {
-  const mainlineNodes = (story.nodes || [])
+  const allNodes = story.nodes || [];
+  const mainlineNodes = allNodes
     .filter((n) => !n.branchId)
     .sort((a, b) => a.order - b.order);
 
@@ -192,7 +193,7 @@ export function backendToTimeline(story: Story): TimelineData {
 
   // Transform branches
   const timelineBranches: TimelineBranch[] = branches.map((branch) =>
-    transformBranchToTimeline(branch, mainlineNodes, branches)
+    transformBranchToTimeline(branch, mainlineNodes, branches, allNodes)
   );
 
   return {
@@ -207,9 +208,13 @@ export function backendToTimeline(story: Story): TimelineData {
 function transformBranchToTimeline(
   branch: Branch,
   mainlineNodes: StoryNode[],
-  allBranches: Branch[]
+  allBranches: Branch[],
+  allNodes: StoryNode[]
 ): TimelineBranch {
-  const branchNodes = (branch.nodes || []).sort((a, b) => a.order - b.order);
+  // Get nodes that belong to this branch
+  const branchNodes = allNodes
+    .filter((n) => n.branchId === branch.id)
+    .sort((a, b) => a.order - b.order);
 
   // Calculate entry point
   const entryNode = findNodeById(branch.entryNodeId, mainlineNodes, allBranches);

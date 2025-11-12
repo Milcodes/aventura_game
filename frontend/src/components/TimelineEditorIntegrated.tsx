@@ -9,7 +9,7 @@
  * 5. Manages validation and error states
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { storiesApi, Story } from '../api/stories';
 import {
   backendToTimeline,
@@ -26,7 +26,7 @@ interface TimelineEditorIntegratedProps {
   onError?: (error: string) => void;
 }
 
-export default function TimelineEditorIntegrated({
+function TimelineEditorIntegrated({
   storyId,
   onSave,
   onError,
@@ -38,6 +38,10 @@ export default function TimelineEditorIntegrated({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Ref for debounce timeout
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load story from backend
   useEffect(() => {
@@ -75,6 +79,43 @@ export default function TimelineEditorIntegrated({
     // Clear previous validation errors when data changes
     setValidationErrors([]);
   }, []);
+
+  // Real-time validation with debounce (500ms)
+  useEffect(() => {
+    if (!timelineData) return;
+
+    // Clear previous timeout
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+
+    // Set validating state
+    setIsValidating(true);
+
+    // Debounce validation
+    validationTimeoutRef.current = setTimeout(() => {
+      const validation = validateTimelineForBackend(timelineData, {
+        storyId,
+        maxDepth: 3,
+        maxNodesPerBranch: 100,
+        minMainlineNodes: 3,
+      });
+
+      const errorMessages = validation.errors
+        .filter((e) => e.type === 'error')
+        .map((e) => e.message);
+
+      setValidationErrors(errorMessages);
+      setIsValidating(false);
+    }, 500);
+
+    // Cleanup on unmount
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
+  }, [timelineData, storyId]);
 
   // Validate timeline data
   const handleValidate = useCallback(() => {
@@ -294,6 +335,12 @@ export default function TimelineEditorIntegrated({
               timelineData.branches.reduce((sum, b) => sum + b.events.length, 0)}
           </span>
         </div>
+        <div className="stat">
+          <span className="stat-label">Validation:</span>
+          <span className={`stat-value ${validationErrors.length > 0 ? 'error' : 'success'}`}>
+            {isValidating ? '⏳ Validating...' : validationErrors.length > 0 ? `❌ ${validationErrors.length} errors` : '✅ Valid'}
+          </span>
+        </div>
       </div>
 
       {/* Timeline Editor */}
@@ -317,3 +364,6 @@ export default function TimelineEditorIntegrated({
     </div>
   );
 }
+
+// Export memoized component for performance optimization
+export default React.memo(TimelineEditorIntegrated);
