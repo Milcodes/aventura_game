@@ -130,13 +130,13 @@ function useUndoRedo<T>(initialState: T) {
 }
 
 // ============= MODAL COMPONENT =============
-const Modal: React.FC<{
+const Modal = React.memo<{
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
-}> = ({ open, onClose, children }) => {
+}>(({ open, onClose, children }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) onClose();
@@ -146,7 +146,7 @@ const Modal: React.FC<{
   }, [open, onClose]);
 
   if (!open) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 z-40 bg-black/50" onClick={onClose} />
@@ -155,18 +155,24 @@ const Modal: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 // ============= MAIN COMPONENT =============
-export default function TimelineEditor() {
+
+interface TimelineEditorProps {
+  initialData?: { events: MainEvent[]; branches: Branch[] };
+  onChange?: (data: { events: MainEvent[]; branches: Branch[] }) => void;
+}
+
+function TimelineEditor({ initialData, onChange }: TimelineEditorProps = {}) {
   const { containerRef, mainX, topY, bottomY, height, width, tToY, yToT, projectPointToSegment, dist2, zoomScale, setZoomScale } = useTimelineGeometry();
-  
+
   // State with undo/redo
-  const { 
-    state: historyState, 
-    setState: setHistoryState, 
-    undo, redo, canUndo, canRedo 
-  } = useUndoRedo<HistoryState>({
+  const {
+    state: historyState,
+    setState: setHistoryState,
+    undo, redo, canUndo, canRedo
+  } = useUndoRedo<HistoryState>(initialData || {
     events: [],
     branches: []
   });
@@ -187,6 +193,13 @@ export default function TimelineEditor() {
 
   const events = historyState.events;
   const branches = historyState.branches;
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (onChange) {
+      onChange({ events, branches });
+    }
+  }, [events, branches, onChange]);
 
   // Filters
   const [visibleDepths, setVisibleDepths] = useState(() => new Set([0, 1, 2, 3, 4, 5]));
@@ -1274,3 +1287,6 @@ export default function TimelineEditor() {
     </div>
   );
 }
+
+// Export memoized component for performance optimization
+export default React.memo(TimelineEditor);

@@ -4,9 +4,10 @@ import { storiesApi, Story, StoryNode, Branch, StoryStatus, BranchType } from '.
 import Header from '../../components/Header';
 import NodeEditorModal from '../../components/NodeEditorModal';
 import BranchEditorModal from '../../components/BranchEditorModal';
+import TimelineEditorIntegrated from '../../components/TimelineEditorIntegrated';
 import './StoryEditor.css';
 
-type Tab = 'metadata' | 'nodes' | 'branches' | 'preview';
+type Tab = 'metadata' | 'nodes' | 'branches' | 'preview' | 'visual';
 
 export default function StoryEditor() {
   const { id } = useParams<{ id: string }>();
@@ -267,6 +268,12 @@ export default function StoryEditor() {
             onClick={() => setActiveTab('preview')}
           >
             👁️ Preview
+          </button>
+          <button
+            className={`tab ${activeTab === 'visual' ? 'active' : ''}`}
+            onClick={() => setActiveTab('visual')}
+          >
+            🎨 Visual Editor
           </button>
         </div>
 
@@ -554,6 +561,17 @@ export default function StoryEditor() {
                   </ul>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* VISUAL EDITOR TAB */}
+          {activeTab === 'visual' && (
+            <div className="visual-tab">
+              <TimelineEditorIntegrated
+                storyId={story.id}
+                onSave={loadStory}
+                onError={(err) => setError(err)}
+              />
             </div>
           )}
         </div>

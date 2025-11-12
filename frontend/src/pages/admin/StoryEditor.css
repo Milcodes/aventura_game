@@ -641,3 +641,15 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Visual Editor Tab */
+.visual-tab {
+  padding: 0;
+  height: calc(100vh - 250px);
+  min-height: 600px;
+  overflow: hidden;
+}
+
+.visual-tab .timeline-integrated {
+  height: 100%;
+}
