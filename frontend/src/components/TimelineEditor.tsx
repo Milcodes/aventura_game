@@ -158,15 +158,21 @@ const Modal: React.FC<{
 };
 
 // ============= MAIN COMPONENT =============
-export default function TimelineEditor() {
+
+interface TimelineEditorProps {
+  initialData?: { events: MainEvent[]; branches: Branch[] };
+  onChange?: (data: { events: MainEvent[]; branches: Branch[] }) => void;
+}
+
+export default function TimelineEditor({ initialData, onChange }: TimelineEditorProps = {}) {
   const { containerRef, mainX, topY, bottomY, height, width, tToY, yToT, projectPointToSegment, dist2, zoomScale, setZoomScale } = useTimelineGeometry();
-  
+
   // State with undo/redo
-  const { 
-    state: historyState, 
-    setState: setHistoryState, 
-    undo, redo, canUndo, canRedo 
-  } = useUndoRedo<HistoryState>({
+  const {
+    state: historyState,
+    setState: setHistoryState,
+    undo, redo, canUndo, canRedo
+  } = useUndoRedo<HistoryState>(initialData || {
     events: [],
     branches: []
   });
@@ -187,6 +193,13 @@ export default function TimelineEditor() {
 
   const events = historyState.events;
   const branches = historyState.branches;
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (onChange) {
+      onChange({ events, branches });
+    }
+  }, [events, branches, onChange]);
 
   // Filters
   const [visibleDepths, setVisibleDepths] = useState(() => new Set([0, 1, 2, 3, 4, 5]));
